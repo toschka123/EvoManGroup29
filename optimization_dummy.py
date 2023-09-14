@@ -11,6 +11,7 @@ import sys
 from evoman.environment import Environment
 from demo_controller import player_controller
 from random import randint, random
+import random
 # imports other libs
 import numpy as np
 import os
@@ -27,7 +28,7 @@ def evaluate(env, x):
 
 
 # choose this for not using visuals and thus making experiments faster
-headless = True
+headless = False
 if headless:
     os.environ["SDL_VIDEODRIVER"] = "dummy"
 
@@ -45,8 +46,8 @@ env = Environment(experiment_name=experiment_name,
                 player_controller=player_controller(n_hidden_neurons), # you  can insert your own controller here
                 enemymode="static",
                 level=2,
-                speed="fastest",
-                visuals=False)
+                speed="normal",
+                visuals=True)
 
 
 # number of weights for multilayer with 10 hidden neurons
@@ -58,13 +59,14 @@ pop_size = 100
 max_f =-1
 avg_f =-1
 low_f = 999
+maxGens=10
+Gen=0
 
-pop = np.random.uniform(-1, 1, (pop_size, n_vars))
-pop_f = evaluate(env,pop)
+pop = np.random.uniform(-1, 1, (pop_size, n_vars)) #initialize population
+pop_f = evaluate(env,pop) #evaluate population
 max_f=max(pop_f)
 avg_f = sum(pop_f)/len(pop_f)
 low_f = min(pop_f)
-
 print(max_f, avg_f)
 
 def recombination(i1, i2): #Takes as input two parents and returns 2 babies, in each position 50% chance to have parent1's gene
@@ -79,5 +81,40 @@ def recombination(i1, i2): #Takes as input two parents and returns 2 babies, in 
             baby2.append(i1[i])
     return baby1, baby2
 
-def parent_selection(population):
-    
+def parent_selection(population,f_value): #random 50, change to something sensible later
+    list_of_parents=[]
+    for i in range(25):
+        ip1 = randint(0,len(population)-1)
+        ip2 = randint(0,len(population)-1)
+        p1 = population[ip1]
+        p2 = population[ip2]
+        list_of_parents.append([p1, p2])
+    return list_of_parents
+
+def kill_people(population): #kill random individual
+    for i in range(50):
+        choiceInd = randint(0,len(population)-1)
+        np.delete(population, choiceInd)
+    return population
+
+
+"""while Gen < maxGens:
+    parents = parent_selection(pop, pop_f)
+    new_kids = np.empty(1)
+    for pairs in parents:
+        baby1, baby2 = recombination(pairs[0], pairs[1])
+        np.append(new_kids, baby1)
+        np.append(new_kids,baby2)
+    pop = kill_people(pop)
+    new_kids= np.array(new_kids)
+    pop = pop + new_kids
+
+    pop_f = evaluate(env,pop)
+    max_f = max(pop_f)
+    avg_f = sum(pop_f) / len(pop_f)
+    low_f = min(pop_f)
+    print(max_f, avg_f,len(pop))
+    Gen+=1"""
+
+
+
