@@ -28,7 +28,7 @@ def evaluate(env, x):
 
 
 # choose this for not using visuals and thus making experiments faster
-headless = False
+headless = True
 if headless:
     os.environ["SDL_VIDEODRIVER"] = "dummy"
 
@@ -46,8 +46,8 @@ env = Environment(experiment_name=experiment_name,
                 player_controller=player_controller(n_hidden_neurons), # you  can insert your own controller here
                 enemymode="static",
                 level=2,
-                speed="normal",
-                visuals=True)
+                speed="fastest",
+                visuals=False)
 
 
 # number of weights for multilayer with 10 hidden neurons
@@ -81,9 +81,9 @@ def recombination(i1, i2): #Takes as input two parents and returns 2 babies, in 
             baby2.append(i1[i])
     return baby1, baby2
 
-def parent_selection(population,f_value): #random 50, change to something sensible later
+def parent_selection(population, f_vals): #random 50, change to something sensible later
     list_of_parents=[]
-    for i in range(25):
+    for i in range(20):
         ip1 = randint(0,len(population)-1)
         ip2 = randint(0,len(population)-1)
         p1 = population[ip1]
@@ -91,30 +91,28 @@ def parent_selection(population,f_value): #random 50, change to something sensib
         list_of_parents.append([p1, p2])
     return list_of_parents
 
-def kill_people(population): #kill random individual
-    for i in range(50):
-        choiceInd = randint(0,len(population)-1)
-        np.delete(population, choiceInd)
-    return population
+def kill_people(population, howManyShouldDie): #kill random individual
+    choiceInd = random.sample(range(0,len(population)), howManyShouldDie)
+    return choiceInd
 
-
-"""while Gen < maxGens:
+while Gen < maxGens:
     parents = parent_selection(pop, pop_f)
-    new_kids = np.empty(1)
+    new_kids = []
     for pairs in parents:
         baby1, baby2 = recombination(pairs[0], pairs[1])
-        np.append(new_kids, baby1)
-        np.append(new_kids,baby2)
-    pop = kill_people(pop)
-    new_kids= np.array(new_kids)
-    pop = pop + new_kids
-
+        new_kids.append(baby1)
+        new_kids.append(baby2)
+    inds = kill_people(pop, 40)
+    for i in range(len(inds)):
+        personToDie=inds[i]
+        pop[personToDie] = new_kids[i]
+    Gen+=1
     pop_f = evaluate(env,pop)
     max_f = max(pop_f)
     avg_f = sum(pop_f) / len(pop_f)
     low_f = min(pop_f)
     print(max_f, avg_f,len(pop))
-    Gen+=1"""
+
 
 
 
