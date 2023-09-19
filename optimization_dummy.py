@@ -81,7 +81,7 @@ def recombination(i1, i2): #Takes as input two parents and returns 2 babies, in 
             baby2.append(i1[i])
     return baby1, baby2
 
-def parent_selection(population, f_vals): #random 50, change to something sensible later
+"""def parent_selection(population, f_vals): #random 50, change to something sensible later
     list_of_parents=[]
     for i in range(20):
         ip1 = randint(0,len(population)-1)
@@ -89,14 +89,42 @@ def parent_selection(population, f_vals): #random 50, change to something sensib
         p1 = population[ip1]
         p2 = population[ip2]
         list_of_parents.append([p1, p2])
-    return list_of_parents
+    return list_of_parents"""
+
+def parent_selection(population, f_values, tournament_size=4):
+    num_parents = len(population)
+    selected_parents = []
+
+    for _ in range(num_parents):
+        tournament_indices = np.random.choice(num_parents, size=tournament_size, replace=False)
+        tournament_individuals = [population[i] for i in tournament_indices]
+        tournament_fitness = [f_values[i] for i in tournament_indices]
+
+        # Choose the best individual from the tournament as the parent
+        best_index = np.argmax(tournament_fitness)
+        selected_parents.append(tournament_individuals[best_index])
+
+    return selected_parents
 
 def kill_people(population, howManyShouldDie): #kill random individual
     choiceInd = random.sample(range(0,len(population)), howManyShouldDie)
     return choiceInd
 
+
+def mutate(individual):
+    mutation_strength = 0.1  # You can adjust this value based on your problem
+
+    for i in range(len(individual)):
+        if random.random() < mutation_strength:
+            individual[i] += random.uniform(-1, 1)  # You can adjust the mutation range
+
+    return individual
+
+
 while Gen < maxGens:
-    parents = parent_selection(pop, pop_f)
+    parents=[]
+    for i in range(20):
+        parents.append(parent_selection(pop, pop_f,4))
     new_kids = []
     for pairs in parents:
         baby1, baby2 = recombination(pairs[0], pairs[1])
