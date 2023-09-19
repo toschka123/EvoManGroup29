@@ -61,6 +61,7 @@ avg_f =-1
 low_f = 999
 maxGens=10
 Gen=0
+N_newGen=100 # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
 
 pop = np.random.uniform(-1, 1, (pop_size, n_vars)) #initialize population
 pop_f = evaluate(env,pop) #evaluate population
@@ -91,8 +92,8 @@ def recombination(i1, i2): #Takes as input two parents and returns 2 babies, in 
         list_of_parents.append([p1, p2])
     return list_of_parents"""
 
-def parent_selection(population, f_values, tournament_size=4):
-    num_parents = len(population)
+def parent_selection(population, f_values, tournament_size=4, N_newGen = N_newGen/2): #Generate Pairs of parents and return them
+    num_parents = N_newGen
     selected_parents = []
 
     for _ in range(num_parents):
@@ -103,13 +104,24 @@ def parent_selection(population, f_values, tournament_size=4):
         # Choose the best individual from the tournament as the parent
         best_index = np.argmax(tournament_fitness)
         selected_parents.append(tournament_individuals[best_index])
-
     return selected_parents
 
 def kill_people(population, howManyShouldDie): #kill random individual
     choiceInd = random.sample(range(0,len(population)), howManyShouldDie)
     return choiceInd
 
+
+"""def kill_tournament(population, f_values, tournament_size=8): 
+    num_parents = len(population)
+    selected_deaths = []
+    for _ in range(num_parents):
+        tournament_indices = np.random.choice(num_parents, size=tournament_size, replace=False)
+        tournament_individuals = [population[i] for i in tournament_indices]
+        tournament_fitness = [f_values[i] for i in tournament_indices]
+        # Choose the best individual from the tournament as the parent
+        best_index = np.argmin(tournament_fitness)
+        selected_deaths.append(tournament_individuals[best_index])
+    return selected_deaths"""
 
 def mutate(individual):
     mutation_strength = 0.1  # You can adjust this value based on your problem
@@ -121,21 +133,22 @@ def mutate(individual):
     return individual
 
 
+
 while Gen < maxGens:
     parents=[]
-    for i in range(20):
-        parents.append(parent_selection(pop, pop_f,4))
+    for i in range(int(N_newGen/2)): #Choose how many pairs of parents we want
+        parents.append(parent_selection(pop, pop_f,4, N_newGen))
     new_kids = []
-    for pairs in parents:
+    for pairs in parents: #Each pair of parents generates two offspring
         baby1, baby2 = recombination(pairs[0], pairs[1])
         new_kids.append(baby1)
         new_kids.append(baby2)
-    inds = kill_people(pop, 40)
-    for i in range(len(inds)):
+    inds = kill_people(pop, N_newGen) # pick how many individuals we want to kill
+    for i in range(len(inds)): #execute them
         personToDie=inds[i]
         pop[personToDie] = new_kids[i]
     Gen+=1
-    pop_f = evaluate(env,pop)
+    pop_f = evaluate(env,pop) #evaluate new population
     max_f = max(pop_f)
     avg_f = sum(pop_f) / len(pop_f)
     low_f = min(pop_f)
