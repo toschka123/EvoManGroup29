@@ -59,8 +59,9 @@ pop_size = 100
 max_f =-1
 avg_f =-1
 low_f = 999
-maxGens=10
+maxGens=20
 Gen=0
+mutation_strength = 0.01
 
 pop = np.random.uniform(-1, 1, (pop_size, n_vars)) #initialize population
 pop_f = evaluate(env,pop) #evaluate population
@@ -73,12 +74,17 @@ def recombination(i1, i2): #Takes as input two parents and returns 2 babies, in 
     baby1=[]
     baby2=[]
     for i in range(len(i1)):
+
         if randint(0,1) == 1:
             baby1.append(i1[i])
             baby2.append(i2[i])
         else:
             baby1.append(i2[i])
             baby2.append(i1[i])
+
+        if random.random() > mutation_strength:
+            baby1[i] = mutate_gene_gaussian(baby1[i])
+
     return baby1, baby2
 
 """def parent_selection(population, f_vals): #random 50, change to something sensible later
@@ -112,13 +118,21 @@ def kill_people(population, howManyShouldDie): #kill random individual
 
 
 def mutate(individual):
-    mutation_strength = 0.1  # You can adjust this value based on your problem
-
     for i in range(len(individual)):
         if random.random() < mutation_strength:
             individual[i] += random.uniform(-1, 1)  # You can adjust the mutation range
-
     return individual
+
+
+def mutate_gene_gaussian(gene):
+    mutation = np.random.normal(0, 0.1)
+
+    while  mutation > 1 or mutation < -1:
+        mutation = np.random.normal(0, 0.1)
+    
+    gene += mutation
+
+    return gene
 
 
 while Gen < maxGens:
