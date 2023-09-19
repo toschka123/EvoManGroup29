@@ -59,9 +59,9 @@ pop_size = 100
 max_f =-1
 avg_f =-1
 low_f = 999
-maxGens=10
+maxGens=20
 Gen=0
-N_newGen=100 # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
+N_newGen=50 # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
 mutation_strength = 0.01
 
 
@@ -98,10 +98,12 @@ def mutate(individual):
 
 
 def mutate_gene_gaussian(gene):
-    mutation = np.random.normal(-0.1, 0.1)
+    mutation = np.random.normal(0, 1)
 
-    while mutation > 1 or mutation < -1:
-        mutation = np.random.normal(0, 0.1)
+    if mutation + gene > 1: #if values too big
+        return 0.99
+    elif mutation < -1: #if values too small
+        return -0.99
 
     gene += mutation
 
@@ -118,7 +120,7 @@ def mutate_gene_gaussian(gene):
         list_of_parents.append([p1, p2])
     return list_of_parents"""
 
-def parent_selection(population, f_values, tournament_size=4, N_newGen = N_newGen/2): #Generate Pairs of parents and return them
+def parent_selection(population, f_values, tournament_size=3, N_newGen = N_newGen/2): #Generate Pairs of parents and return them
     num_parents = N_newGen
     selected_parents = []
 
@@ -135,6 +137,13 @@ def parent_selection(population, f_values, tournament_size=4, N_newGen = N_newGe
 def kill_people(population, howManyShouldDie): #kill random individual
     choiceInd = random.sample(range(0,len(population)), howManyShouldDie)
     return choiceInd
+
+def select_surv(pop, f_pop, N_remove=N_newGen):
+    indxs= sorted(range(len(f_pop)), key=lambda k: f_pop[k])[N_remove:]
+    survivors = []
+    for i in indxs:
+        survivors.append(pop[i])
+    return survivors
 
 
 """def kill_tournament(population, f_values, tournament_size=8): 
@@ -169,10 +178,16 @@ while Gen < maxGens:
         baby1, baby2 = recombination(pairs[0], pairs[1])
         new_kids.append(baby1)
         new_kids.append(baby2)
-    inds = kill_people(pop, N_newGen) # pick how many individuals we want to kill
-    for i in range(len(inds)): #execute them
-        personToDie=inds[i]
-        pop[personToDie] = new_kids[i]
+
+    old_generation = pop.tolist()
+    total = old_generation + new_kids
+    total =np.array(total)
+    total_f = evaluate(env, total)
+    survivors = select_surv(total, total_f, 100)
+
+    #inds = kill_people(pop, N_newGen) # pick how many individuals we want to kill
+    for i in range(len(survivors)): #execute them
+        pop[i] = survivors[i]
     Gen+=1
     pop_f = evaluate(env,pop) #evaluate new population
     max_f = max(pop_f)
