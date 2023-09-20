@@ -102,9 +102,6 @@ def recombination(i1, i2): #Takes as input two parents and returns 2 babies, in 
 #         list_of_parents.append([p1, p2])
 #     return list_of_parents
 
-<<<<<<< Updated upstream
-def parent_selection(population, f_values, tournament_size):
-=======
 # def parent_selection(population, f_values, tournament_size=4):
 #     num_parents = len(population)
 #     selected_parents = []
@@ -121,7 +118,6 @@ def parent_selection(population, f_values, tournament_size):
 #     return selected_parents
     
 def parent_selection(population, f_values, initial_tournament_size=4, max_tournament_size=8):
->>>>>>> Stashed changes
     num_parents = len(population)
     selected_parents = []
 
@@ -187,5 +183,45 @@ def kill_people(population): #kill random individual
     print(max_f, avg_f,len(pop))
     Gen+=1"""
 
+fitness_history = []  # Store fitness values for each generation
 
+while Gen < maxGens:
+    parents = []
+    for i in range(int(N_newGen/2)):  # Choose how many pairs of parents we want
+        parents.append(parent_selection(pop, pop_f, 4, N_newGen))
+    new_kids = []
+    for pairs in parents:  # Each pair of parents generates two offspring
+        baby1, baby2 = recombination(pairs[0], pairs[1])
+        new_kids.append(baby1)
+        new_kids.append(baby2)
 
+    # Roulette Wheel Selection for survivor selection
+    selected_survivors = kill_people(pop, pop_f, N_newGen)
+
+    # Replace old individuals with new offspring
+    for i in range(len(selected_survivors)):
+        pop[i] = selected_survivors[i]
+
+    Gen += 1
+    pop_f = evaluate(env, pop)  # evaluate new population
+    max_f = max(pop_f)
+    avg_f = sum(pop_f) / len(pop_f)
+    low_f = min(pop_f)
+    print(max_f, avg_f, len(pop))
+
+    # Calculate and store the fitness values of the current population
+    fitness_values = evaluate(env, pop)
+    fitness_history.append(fitness_values)
+
+    # Calculate the standard deviation of fitness values
+    fitness_std = np.std(fitness_values)
+
+    # Print or log the fitness diversity metric for the current generation
+    print(f"Generation {Gen}: Fitness Diversity (Std Dev): {fitness_std}")
+
+# After the loop, you can visualize the fitness diversity over generations if needed
+plt.plot(range(maxGens), [np.std(fitness) for fitness in fitness_history])
+plt.title("Fitness Diversity Over Generations")
+plt.xlabel("Generation")
+plt.ylabel("Standard Deviation of Fitness")
+plt.show()
