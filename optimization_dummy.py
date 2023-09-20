@@ -14,6 +14,7 @@ from random import randint, random
 import random
 # imports other libs
 import numpy as np
+import matplotlib.pyplot as plt 
 import os
 
 # runs simulation
@@ -72,6 +73,7 @@ low_f = 999
 maxGens=10
 Gen=0
 tournament_size = 4
+N_newGen = pop_size
 
 pop = np.random.uniform(-1, 1, (pop_size, n_vars)) #initialize population
 pop_f = evaluate(env,pop) #evaluate population
