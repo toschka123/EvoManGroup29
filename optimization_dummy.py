@@ -60,9 +60,9 @@ avg_f =-1
 low_f = 999
 maxGens=20
 Gen=0
-# N_newGen=pop_size # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
+N_newGen=pop_size # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
 mutation_strength = 0.04
-fitness_survivor_no = 2 # how many children in the new generation will be from "best". The rest are random.
+fitness_survivor_no = 20 # how many children in the new generation will be from "best". The rest are random.
 gaussian_mutation_sd = 0.5 
 
 
