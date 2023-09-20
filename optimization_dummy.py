@@ -116,6 +116,11 @@ def kill_people(population, howManyShouldDie): #kill random individual
     choiceInd = random.sample(range(0,len(population)), howManyShouldDie)
     return choiceInd
 
+def kill_by_fitness(population, howManyShouldDie):
+    # pop_by_fitness = np.argmax(pop_f)
+    choiceInd = sorted(range(len(pop_f)), key=lambda k: pop_f[k])[:howManyShouldDie]
+    return choiceInd
+
 
 def mutate(individual):
     for i in range(len(individual)):
@@ -127,8 +132,8 @@ def mutate(individual):
 def mutate_gene_gaussian(gene):
     mutation = np.random.normal(0, 0.1)
 
-    while  mutation > 1 or mutation < -1:
-        mutation = np.random.normal(0, 0.1)
+    while  (gene+mutation) > 1 or (gene+mutation) < -1:
+        mutation = np.random.normal(0, 0.5)
     
     gene += mutation
 
@@ -144,7 +149,7 @@ while Gen < maxGens:
         baby1, baby2 = recombination(pairs[0], pairs[1])
         new_kids.append(baby1)
         new_kids.append(baby2)
-    inds = kill_people(pop, 40)
+    inds = kill_by_fitness(pop, 40)
     for i in range(len(inds)):
         personToDie=inds[i]
         pop[personToDie] = new_kids[i]
