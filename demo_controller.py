@@ -91,7 +91,11 @@ class enemy_controller(Controller):
 
 	def control(self, inputs,controller):
 		# Normalises the input using min-max scaling
-		inputs = (inputs-min(inputs))/float((max(inputs)-min(inputs)))222
+		inputs = (inputs-min(inputs))/float((max(inputs)-min(inputs)))
+
+		if self.n_hidden[0]>0:
+			# Preparing the weights and biases from the controller of layer 1
+
 			# Biases for the n hidden neurons
 			bias1 = controller[:self.n_hidden[0]].reshape(1,self.n_hidden[0])
 			# Weights for the connections from the inputs to the hidden nodes
