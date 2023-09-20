@@ -102,18 +102,54 @@ def recombination(i1, i2): #Takes as input two parents and returns 2 babies, in 
 #         list_of_parents.append([p1, p2])
 #     return list_of_parents
 
+<<<<<<< Updated upstream
 def parent_selection(population, f_values, tournament_size):
+=======
+# def parent_selection(population, f_values, tournament_size=4):
+#     num_parents = len(population)
+#     selected_parents = []
+
+#     for _ in range(num_parents):
+#         tournament_indices = np.random.choice(num_parents, size=tournament_size, replace=False)
+#         tournament_individuals = [population[i] for i in tournament_indices]
+#         tournament_fitness = [f_values[i] for i in tournament_indices]
+
+#         # Choose the best individual from the tournament as the parent
+#         best_index = np.argmax(tournament_fitness)
+#         selected_parents.append(tournament_individuals[best_index])
+
+#     return selected_parents
+    
+def parent_selection(population, f_values, initial_tournament_size=4, max_tournament_size=8):
+>>>>>>> Stashed changes
     num_parents = len(population)
     selected_parents = []
 
+    # Track the diversity of individuals
+    diversity_scores = np.zeros(num_parents)
+
+    # Adaptive tournament size parameters
+    current_tournament_size = initial_tournament_size
+    tournament_size_increment = 1  # Adjust as needed
+
     for _ in range(num_parents):
-        tournament_indices = np.random.choice(num_parents, size=tournament_size, replace=False)
+        # Randomly select individuals for the tournament
+        tournament_indices = np.random.choice(num_parents, size=current_tournament_size, replace=False)
         tournament_individuals = [population[i] for i in tournament_indices]
         tournament_fitness = [f_values[i] for i in tournament_indices]
 
+        # Calculate the diversity score for each selected individual
+        for i, index in enumerate(tournament_indices):
+            diversity_scores[index] += np.mean(np.abs(tournament_fitness - f_values[index]))
+
         # Choose the best individual from the tournament as the parent
-        best_index = np.argmax(tournament_fitness)
-        selected_parents.append(tournament_individuals[best_index])
+        best_index = tournament_indices[np.argmax(tournament_fitness)]
+
+        # Update tournament size for the next selection (adaptive)
+        if current_tournament_size < max_tournament_size:
+            current_tournament_size += tournament_size_increment
+
+        selected_parents.append(population[best_index])
 
     return selected_parents
 
