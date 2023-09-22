@@ -120,18 +120,21 @@ def mutate_gene_gaussian(gene):
         list_of_parents.append([p1, p2])
     return list_of_parents"""
 
-def parent_selection(population, f_values, tournament_size=2, N_newGen = N_newGen/2): #Generate Pairs of parents and return them
+def parent_selection(population, f_values, tournament_size=6, N_newGen = N_newGen/2): #Generate Pairs of parents and return them
     num_parents = N_newGen
     selected_parents = []
 
-    for _ in range(num_parents):
-        tournament_indices = np.random.choice(num_parents, size=tournament_size, replace=False)
-        tournament_individuals = [population[i] for i in tournament_indices]
-        tournament_fitness = [f_values[i] for i in tournament_indices]
+    #for _ in range(num_parents):
+    tournament_indices = np.random.choice(num_parents, size=tournament_size, replace=False)
+    tournament_individuals = [population[i] for i in tournament_indices]
+    tournament_fitness = [f_values[i] for i in tournament_indices]
 
-        # Choose the best individual from the tournament as the parent
-        best_index = np.argmax(tournament_fitness)
-        selected_parents.append(tournament_individuals[best_index])
+    # Choose the best individual from the tournament as the parent
+    best_index = np.argmax(tournament_fitness)
+    # Select the second parent randomly
+    second_parent_ind = random.randint(0,99)
+    selected_parents.append(tournament_individuals[best_index])
+    selected_parents.append(population[second_parent_ind])
     return selected_parents
 
 def kill_people(population, howManyShouldDie): #kill random individual
