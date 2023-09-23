@@ -229,9 +229,9 @@ while Gen < maxGens:
     for i in range(len(survivors)):
         pop[i] = survivors[i]
 
-    # survivors = select_surv(new_kids, fitness_survivor_no)
-    # for i in range(pop_size):
-    #     pop[i] = survivors[i]
+    survivors = select_surv(new_kids, fitness_survivor_no)
+    for i in range(pop_size):
+        pop[i] = survivors[i]
 
     Gen+=1
     pop_f = evaluate(env,pop) #evaluate new population
