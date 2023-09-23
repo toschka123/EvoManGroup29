@@ -60,7 +60,7 @@ n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5
 # start writing your own code from here
 
 pop_size = 100
-max_f =-1
+max_f =1
 avg_f =-1
 low_f = 999
 maxGens=30
@@ -93,19 +93,6 @@ def recombination(i1, i2): #Takes as input two parents and returns 2 babies, in 
             baby1[i] = mutate_gene_gaussian(baby1[i])
 
     return baby1, baby2
-
-
-# def recombination(parent1, parent2, mutation_strength):
-#     # Ensure the parents have the same length
-#     assert len(parent1) == len(parent2), "Parents must have the same length"
-
-#     baby1 = [gene1 if random.random() < 0.5 else gene2 for gene1, gene2 in zip(parent1, parent2)]
-#     baby2 = [gene1 if random.random() < 0.5 else gene2 for gene1, gene2 in zip(parent2, parent1)]
-
-#     # Apply mutation to baby1
-#     baby1 = [mutate_gene_gaussian(gene, mutation_strength) for gene in baby1]
-
-#     return baby1, baby2
 
 def mutate_gene_gaussian(gene):
     mutation = np.random.normal(0, 0.5)
@@ -164,6 +151,7 @@ def adaptive_tournament_selection(population, f_values, min_tournament_size=4, m
 
     return selected_parents  # Return the list of selected parents
 
+
 def select_surv(pop, f_pop, N_remove=N_newGen):
     indxs= sorted(range(len(f_pop)), key=lambda k: f_pop[k])[N_remove:]
     survivors = []
@@ -190,13 +178,17 @@ while Gen < maxGens:
 
     new_kids = []
     for pairs in parents:
-        baby1, baby2 = recombination(pairs[0], pairs[1], mutation_strength)
+        baby1, baby2 = recombination(pairs[0], pairs[1])
         new_kids.append(baby1)
         new_kids.append(baby2)
 
 
-    survivors = select_surv(new_kids, fitness_survivor_no)
-    for i in range(pop_size):
+    old_generation = pop.tolist()
+    total = old_generation + new_kids
+    total =np.array(total)
+    total_f = evaluate(env, total)
+    survivors = select_surv(total, total_f, 100)
+    for i in range(len(survivors)):
         pop[i] = survivors[i]
 
     Gen += 1
