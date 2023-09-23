@@ -45,7 +45,7 @@ n_hidden_neurons = 10
 
 # initializes simulation in individual evolution mode, for single static enemy.
 env = Environment(experiment_name=experiment_name,
-                enemies=[2],
+                enemies=[4],
                 playermode="ai",
                 player_controller=player_controller(n_hidden_neurons), # you  can insert your own controller here
                 enemymode="static",
@@ -63,10 +63,10 @@ pop_size = 100
 max_f =-1
 avg_f =-1
 low_f = 999
-maxGens=20
+maxGens=30
 Gen=0
 N_newGen=pop_size # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
-mutation_strength = 0.04
+mutation_strength = 0.1
 fitness_survivor_no = 20 # how many children in the new generation will be from "best". The rest are random.
 gaussian_mutation_sd = 0.5 
 
@@ -163,35 +163,17 @@ def adaptive_tournament_selection(population, f_values, min_tournament_size=4, m
 
     return selected_parents
 
-def kill_people(population, howManyShouldDie): #kill random individual
-    choiceInd = random.sample(range(0,len(population)), howManyShouldDie)
-    return choiceInd
-
 def select_surv(pop, f_pop, N_remove=N_newGen):
-    indxs= sorted(range(len(f_pop)), key=lambda k: f_pop[k])[N_remove:]
-    survivors = []
-    for i in indxs:
-        survivors.append(pop[i])
-    return survivors
-
-
-# Returns a survivor array containing surviving children (only!).
-# Some (small) number of surviving children are picked based on fitness.
-# The rest are picked randomly.
-def survivor_selector_mu_lambda(children, no_best_picks):
-    survivors = np.random.uniform(-1, 1, (pop_size, n_vars)) #preallocate a random array for survivors
-
-    children_fitness = evaluate(env, children)
-    indices_best_children = np.argpartition(children_fitness, -no_best_picks)[-no_best_picks:]
-
-    for i in range(no_best_picks): #add some number of best children to the new population
-        survivors[i] =children[indices_best_children[i]] 
+    # Sort the population indices by fitness in descending order
+    sorted_indices = np.argsort(-f_pop)
     
-    for i in range(no_best_picks, pop_size): #fill the rest of the population with random children
-        survivors[i] = children[random.randint(0, pop_size-1)]
-
+    # Select the top N_remove individuals
+    selected_indices = sorted_indices[:N_remove]
+    
+    # Use NumPy array indexing to select survivors
+    survivors = pop[selected_indices]
+    
     return survivors
-
 
 """def kill_tournament(population, f_values, tournament_size=8): 
     num_parents = len(population)
@@ -228,20 +210,6 @@ while Gen < maxGens:
         new_kids.append(baby1)
         new_kids.append(baby2)
 
-    # parents=[]
-    # parents = parent_selection(pop, pop_f, 4) #generates 100 parents - parent selection seems to make the convergion faster
-
-    # new_kids = np.random.uniform(-1, 1, (6*pop_size, n_vars)) #preallocate 600 kids
-    # for i in range(0,len(new_kids),2):
-    #     baby1, baby2 = recombination(parents[random.randint(0, 99)], parents[random.randint(0, 99)])
-    #     new_kids[i] = baby1
-    #     new_kids[i+1] = baby2
-
-
-    # survivors = select_surv(total, total_f, 100)
-    # for i in range(len(survivors)):
-    #     pop[i] = survivors[i]
-    # Combine the old population (pop) and the new offspring (new_kids)
     total = np.vstack((pop, new_kids))
 
     # Evaluate the fitness of the total population
@@ -252,13 +220,6 @@ while Gen < maxGens:
 
     # Update the population with survivors
     pop = np.array(survivors)
-
-    Gen += 1
-    pop_f = evaluate(env, pop)
-
-    # survivors = select_surv(new_kids, fitness_survivor_no)
-    # for i in range(pop_size):
-    #     pop[i] = survivors[i]
 
     Gen+=1
     pop_f = evaluate(env,pop) #evaluate new population
