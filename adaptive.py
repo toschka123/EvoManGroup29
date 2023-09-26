@@ -177,8 +177,8 @@ def adaptive_tournament_selection(population, f_values, min_tournament_size=4, m
         # Append the best individual to the list of selected parents
         selected_parents.append(population[best_index])
 
-        #second_parent_ind = random.randint(0, 99)
-        #selected_parents.append(population[second_parent_ind])
+        second_parent_ind = random.randint(0, 99)
+        selected_parents.append(population[second_parent_ind])
 
         # Update tournament size for the next selection (adaptive)
         if current_tournament_size < max_tournament_size:
@@ -229,10 +229,15 @@ while Gen < maxGens:
     new_kids = np.random.uniform(-1, 1, (2*pop_size, n_vars)) #preallocate 600 kids
 
     for i in range(0,100,2):
-        baby1, baby2 = recombination(parents[i], parents[i+1])
-
+        baby1, baby2 = uniform_recombination(parents[i], parents[i+1])
         new_kids[i] = baby1
-        new_kids[i+1] = baby2
+        new_kids[i + 1] = baby2
+
+    """if len(new_kids) > 100:
+        for i in range(0,len(new_kids)-100, 2):
+            baby1, baby2 = uniform_recombination(parents[randint(0,99)], parents[randint(0,99)])
+            new_kids[i+100] = baby1
+            new_kids[i+101] = baby2"""
 
 
     survivors = survivor_selector_mu_lambda(new_kids, fitness_survivor_no)
