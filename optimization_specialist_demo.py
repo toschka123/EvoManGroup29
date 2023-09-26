@@ -5,6 +5,7 @@
 # karine.smiras@gmail.com     				                                  #
 ###############################################################################
 
+# imports framework
 import sys
 
 from evoman.environment import Environment
@@ -33,7 +34,7 @@ n_hidden_neurons = 10
 
 # initializes simulation in individual evolution mode, for single static enemy.
 env = Environment(experiment_name=experiment_name,
-                  enemies=[3],
+                  enemies=[8],
                   playermode="ai",
                   player_controller=player_controller(n_hidden_neurons),
                   enemymode="static",
@@ -65,7 +66,7 @@ npop = 100
 gens = 30
 mutation = 0.2
 last_best = 0
-tournament_size = 4
+
 
 # runs simulation
 def simulation(env,x):
@@ -91,25 +92,14 @@ def evaluate(x):
 
 
 # tournament
-# def tournament(pop):
-#     c1 =  np.random.randint(0,pop.shape[0], 1)
-#     c2 =  np.random.randint(0,pop.shape[0], 1)
+def tournament(pop):
+    c1 =  np.random.randint(0,pop.shape[0], 1)
+    c2 =  np.random.randint(0,pop.shape[0], 1)
 
-#     if fit_pop[c1] > fit_pop[c2]:
-#         return pop[c1][0]
-#     else:
-#         return pop[c2][0]
-
-def tournament(pop, fit_pop, tournament_size):
-    # Randomly select tournament_size individuals
-    tournament_indices = np.random.choice(pop.shape[0], size=tournament_size, replace=False)
-    tournament_fitness = [fit_pop[i] for i in tournament_indices]
-
-    # Choose the best individual from the tournament based on fitness values
-    best_index = np.argmax(tournament_fitness)
-    best_individual = pop[tournament_indices[best_index]]
-
-    return best_individual
+    if fit_pop[c1] > fit_pop[c2]:
+        return pop[c1][0]
+    else:
+        return pop[c2][0]
 
 
 # limits
@@ -124,61 +114,35 @@ def limits(x):
 
 
 # crossover
-# def crossover(pop):
+def crossover(pop):
 
-#     total_offspring = np.zeros((0,n_vars))
+    total_offspring = np.zeros((0,n_vars))
 
 
-#     for p in range(0,pop.shape[0], 2):
-#         p1 = tournament(pop)
-#         p2 = tournament(pop)
+    for p in range(0,pop.shape[0], 2):
+        p1 = tournament(pop)
+        p2 = tournament(pop)
 
-#         n_offspring =   np.random.randint(1,3+1, 1)[0]
-#         offspring =  np.zeros( (n_offspring, n_vars) )
+        n_offspring =   np.random.randint(1,3+1, 1)[0]
+        offspring =  np.zeros( (n_offspring, n_vars) )
 
-#         for f in range(0,n_offspring):
+        for f in range(0,n_offspring):
 
-#             cross_prop = np.random.uniform(0,1)
-#             offspring[f] = p1*cross_prop+p2*(1-cross_prop)
+            cross_prop = np.random.uniform(0,1)
+            offspring[f] = p1*cross_prop+p2*(1-cross_prop)
 
-#             # mutation
-#             for i in range(0,len(offspring[f])):
-#                 if np.random.uniform(0 ,1)<=mutation:
-#                     offspring[f][i] =   offspring[f][i]+np.random.normal(0, 1)
+            # mutation
+            for i in range(0,len(offspring[f])):
+                if np.random.uniform(0 ,1)<=mutation:
+                    offspring[f][i] =   offspring[f][i]+np.random.normal(0, 1)
 
-#             offspring[f] = np.array(list(map(lambda y: limits(y), offspring[f])))
+            offspring[f] = np.array(list(map(lambda y: limits(y), offspring[f])))
 
-#             total_offspring = np.vstack((total_offspring, offspring[f]))
-
-#     return total_offspring
-
-def crossover(pop, fit_pop):
-    total_offspring = np.zeros((0, n_vars))
-
-    for p in range(0, pop.shape[0], 2):
-        parents = [tournament(pop, fit_pop, tournament_size=3) for _ in range(3)]  # Use tournament selection with 3 parents
-        n_offspring = np.random.randint(1, 3 + 1, 1)[0]
-        offspring = np.zeros((n_offspring, n_vars))
-
-        for f in range(0, n_offspring):
-            cross_props = np.random.uniform(0, 1, len(parents))
-            child = np.zeros(n_vars)
-
-            for i in range(len(parents[0])):
-                child[i] = sum(p[i] * cross_props[idx] for idx, p in enumerate(parents))
-
-                # Mutation
-                if np.random.uniform(0, 1) <= mutation:
-                    child[i] += np.random.normal(0, 1)
-
-                child[i] = limits(child[i])
-
-            offspring[f] = child
             total_offspring = np.vstack((total_offspring, offspring[f]))
 
     return total_offspring
 
-    
+
 # kills the worst genomes, and replace with new best/random solutions
 def doomsday(pop,fit_pop):
 
@@ -259,68 +223,29 @@ file_aux.close()
 last_sol = fit_pop[best]
 notimproved = 0
 
-# for i in range(ini_g+1, gens):
-    
-#     offspring = crossover(pop)  # crossover
-#     fit_offspring = evaluate(offspring)   # evaluation
-#     pop = np.vstack((pop,offspring))
-#     fit_pop = np.append(fit_pop,fit_offspring)
+for i in range(ini_g+1, gens):
 
-#     best = np.argmax(fit_pop) #best solution in generation
-#     fit_pop[best] = float(evaluate(np.array([pop[best] ]))[0]) # repeats best eval, for stability issues
-#     best_sol = fit_pop[best]
+    offspring = crossover(pop)  # crossover
+    fit_offspring = evaluate(offspring)   # evaluation
+    pop = np.vstack((pop,offspring))
+    fit_pop = np.append(fit_pop,fit_offspring)
 
-#     # selection
-#     fit_pop_cp = fit_pop
-#     fit_pop_norm =  np.array(list(map(lambda y: norm(y,fit_pop_cp), fit_pop))) # avoiding negative probabilities, as fitness is ranges from negative numbers
-#     probs = (fit_pop_norm)/(fit_pop_norm).sum()
-#     chosen = np.random.choice(pop.shape[0], npop , p=probs, replace=False)
-#     chosen = np.append(chosen[1:],best)
-#     pop = pop[chosen]
-#     fit_pop = fit_pop[chosen]
-
-
-#     # searching new areas
-
-#     if best_sol <= last_sol:
-#         notimproved += 1
-#     else:
-#         last_sol = best_sol
-#         notimproved = 0
-
-#     if notimproved >= 15:
-
-#         file_aux  = open(experiment_name+'/results.txt','a')
-#         file_aux.write('\ndoomsday')
-#         file_aux.close()
-
-#         pop, fit_pop = doomsday(pop,fit_pop)
-#         notimproved = 0
-
-#     best = np.argmax(fit_pop)
-#     std  =  np.std(fit_pop)
-#     mean = np.mean(fit_pop)
-
-for i in range(ini_g + 1, gens):
-    offspring = crossover(pop, fit_pop)  # crossover
-    fit_offspring = evaluate(offspring)  # evaluation
-    pop = np.vstack((pop, offspring))
-    fit_pop = np.append(fit_pop, fit_offspring)
-
-    best = np.argmax(fit_pop)  # best solution in generation
-    fit_pop[best] = float(evaluate(np.array([pop[best]]))[0])  # repeats best eval, for stability issues
+    best = np.argmax(fit_pop) #best solution in generation
+    fit_pop[best] = float(evaluate(np.array([pop[best] ]))[0]) # repeats best eval, for stability issues
     best_sol = fit_pop[best]
 
-    # Selection
+    # selection
     fit_pop_cp = fit_pop
-    fit_pop_norm = np.array(list(map(lambda y: norm(y, fit_pop_cp), fit_pop)))
-    probs = fit_pop_norm / fit_pop_norm.sum()
-    chosen = np.random.choice(pop.shape[0], npop, p=probs, replace=False)
-    chosen = np.append(chosen[1:], best)
+    fit_pop_norm =  np.array(list(map(lambda y: norm(y,fit_pop_cp), fit_pop))) # avoiding negative probabilities, as fitness is ranges from negative numbers
+    probs = (fit_pop_norm)/(fit_pop_norm).sum()
+    chosen = np.random.choice(pop.shape[0], npop , p=probs, replace=False)
+    chosen = np.append(chosen[1:],best)
     pop = pop[chosen]
     fit_pop = fit_pop[chosen]
 
-    # Searching new areas
+
+    # searching new areas
+
     if best_sol <= last_sol:
         notimproved += 1
     else:
@@ -328,16 +253,18 @@ for i in range(ini_g + 1, gens):
         notimproved = 0
 
     if notimproved >= 15:
-        file_aux = open(experiment_name + '/results.txt', 'a')
+
+        file_aux  = open(experiment_name+'/results.txt','a')
         file_aux.write('\ndoomsday')
         file_aux.close()
 
-        pop, fit_pop = doomsday(pop, fit_pop)
+        pop, fit_pop = doomsday(pop,fit_pop)
         notimproved = 0
 
     best = np.argmax(fit_pop)
-    std = np.std(fit_pop)
+    std  =  np.std(fit_pop)
     mean = np.mean(fit_pop)
+
 
     # saves results
     file_aux  = open(experiment_name+'/results.txt','a')
