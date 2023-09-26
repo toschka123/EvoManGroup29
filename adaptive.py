@@ -74,7 +74,26 @@ avg_f = sum(pop_f)/len(pop_f)
 low_f = min(pop_f)
 print(max_f, avg_f)
 
-def recombination(i1, i2): #Takes as input two parents and returns 2 babies, in each position 50% chance to have parent1's gene
+
+def random_points(n):
+    crossover_list = []
+    for i in range(n):
+        # generate random point in the list of weights
+        k = random.randint(0, 265)
+        # checking the point is not already in the list
+        if k not in crossover_list:
+            crossover_list.append(k)
+
+    crossover_list.sort()
+    return crossover_list
+
+def crossover (p1, p2, point):
+        for i in range(point, len(p1)):
+            p1[i], p2[i] = p2[i], p1[i]
+        return p1, p2
+
+#Uniform recombination
+def uniform_recombination(i1, i2): #Takes as input two parents and returns 2 babies, in each position 50% chance to have parent1's gene
     baby1=[]
     baby2=[]
     for i in range(len(i1)):
@@ -90,6 +109,26 @@ def recombination(i1, i2): #Takes as input two parents and returns 2 babies, in 
             baby1[i] = mutate_gene_gaussian(baby1[i])
 
     return baby1, baby2
+
+#n-point crossover
+def npoint_recombination(i1, i2, n):
+    # find the crossover point locations
+    crossover_locs = random_points(n)
+
+    # track the crossover points
+    swapped = False
+
+    #loop over weights and swap weights between parents until you encounter the next crossover location
+    for i in range(len(i1)):
+        if swapped:
+            if i in crossover_locs:
+                swapped = False
+            else:
+                i1[i], i2[i] = i2[i], i1[i]
+        elif not swapped and i in crossover_locs:
+            swapped = True
+
+    return i1, i2
 
 def mutate(individual):
     for i in range(len(individual)):
@@ -191,6 +230,7 @@ while Gen < maxGens:
 
     for i in range(0,100,2):
         baby1, baby2 = recombination(parents[i], parents[i+1])
+
         new_kids[i] = baby1
         new_kids[i+1] = baby2
 
