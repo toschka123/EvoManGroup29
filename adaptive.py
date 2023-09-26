@@ -41,39 +41,32 @@ n_hidden_neurons = 10
 
 # initializes simulation in individual evolution mode, for single static enemy.
 env = Environment(experiment_name=experiment_name,
-                enemies=[6],
+                enemies=[7],
                 playermode="ai",
                 player_controller=player_controller(n_hidden_neurons), # you  can insert your own controller here
                 enemymode="static",
                 level=2,
                 speed="fastest",
-                visuals=True)
+                visuals=False)
 
 
 # number of weights for multilayer with 10 hidden neurons
 n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5
 
 # start writing your own code from here
-
 pop_size = 100
-max_f =-1
-avg_f =-1
+max_f = -1
+avg_f = -1
 low_f = 999
-maxGens=20
-Gen=0
-N_newGen=pop_size*4 # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
+maxGens = 20
+Gen = 0
+N_newGen = pop_size * 4  # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
 mutation_strength = 0.04
-fitness_survivor_no = 20 # how many children in the new generation will be from "best". The rest are random.
+fitness_survivor_no = 20  # how many children in the new generation will be from "best". The rest are random.
 gaussian_mutation_sd = 0.5
 overall_best = -1
 fitness_history = []
 
-pop = np.random.uniform(-1, 1, (pop_size, n_vars)) #initialize population
-pop_f = evaluate(env,pop) #evaluate population
-max_f=max(pop_f)
-avg_f = sum(pop_f)/len(pop_f)
-low_f = min(pop_f)
-print(max_f, avg_f)
 run_mode = "test"
 
 def random_points(n):
@@ -147,8 +140,8 @@ def mutate_gene_gaussian(gene):
     gene += mutation
     return gene
 
-def adaptive_tournament_selection(population, f_values, min_tournament_size=2, max_tournament_size=6):
-    num_parents = int(len(population))
+def adaptive_tournament_selection(population, f_values, min_tournament_size=2, max_tournament_size=5):
+    num_parents = int(len(population)/2)
     selected_parents = []  # List to store the selected parents
 
     # Track the diversity of individuals using an array of zeros
@@ -159,11 +152,12 @@ def adaptive_tournament_selection(population, f_values, min_tournament_size=2, m
     tournament_size_increment = 1  # Increment to adjust tournament size (can be modified)
 
     # Loop over the number of parents to select
-    for _ in range(int(N_newGen/2)):
+    for _ in range(int(N_newGen)):
         # Randomly select individuals for the tournament (without replacement)
-        tournament_indices = np.random.choice(num_parents, size=current_tournament_size, replace=False)
+        tournament_indices = np.random.choice(num_parents, size=min_tournament_size, replace=False)
         # Calculate the fitness values of the selected individuals
         tournament_fitness = [f_values[i] for i in tournament_indices]
+        best_index1 = tournament_indices[np.argmax(tournament_fitness)]
 
         # Calculate the diversity score for each selected individual
         """for index in tournament_indices:
@@ -172,17 +166,21 @@ def adaptive_tournament_selection(population, f_values, min_tournament_size=2, m
             diversity_scores[index] += np.mean(np.abs(tournament_fitness - f_values[index]))"""
 
         # Choose the best individual from the tournament as the parent
-        best_index = tournament_indices[np.argmax(tournament_fitness)]
+        tournament_indices = np.random.choice(num_parents, size=max_tournament_size, replace=False)
+        # Calculate the fitness values of the selected individuals
+        tournament_fitness = [f_values[i] for i in tournament_indices]
+        best_index2 = tournament_indices[np.argmax(tournament_fitness)]
 
         # Append the best individual to the list of selected parents
-        selected_parents.append(population[best_index])
+        selected_parents.append(population[best_index1])
+        selected_parents.append(population[best_index2])
 
-        second_parent_ind = random.randint(0, 99)
-        selected_parents.append(population[second_parent_ind])
+        #second_parent_ind = random.randint(0, 99)
+        #selected_parents.append(population[second_parent_ind])
 
-        # Update tournament size for the next selection (adaptive)
+        """# Update tournament size for the next selection (adaptive)
         if current_tournament_size < max_tournament_size:
-            current_tournament_size += tournament_size_increment
+            current_tournament_size += tournament_size_increment"""
 
     #print(len(selected_parents))
     return selected_parents  # Return the list of selected parents
@@ -222,11 +220,20 @@ if run_mode =='test':
     bsol = np.loadtxt(experiment_name+'/best.txt')
     print( '\n RUNNING SAVED BEST SOLUTION \n')
     env.update_parameter('speed','normal')
+    env.update_parameter('visuals', True)
     evaluate(env, [bsol])
 
     sys.exit(0)
 
 elif run_mode == 'train':
+
+
+    pop = np.random.uniform(-1, 1, (pop_size, n_vars))  # initialize population
+    pop_f = evaluate(env, pop)  # evaluate population
+    max_f = max(pop_f)
+    avg_f = sum(pop_f) / len(pop_f)
+    low_f = min(pop_f)
+    print(max_f, avg_f)
 
     while Gen < maxGens:
         # parents = []
@@ -264,7 +271,6 @@ elif run_mode == 'train':
 
         if max_f > overall_best:
             overall_best = max_f
-            print(overall_best)
             best = np.argmax(pop_f)
             best_individual = pop[best]
 
