@@ -41,7 +41,7 @@ n_hidden_neurons = 10
 
 # initializes simulation in individual evolution mode, for single static enemy.
 env = Environment(experiment_name=experiment_name,
-                enemies=[2],
+                enemies=[6],
                 playermode="ai",
                 player_controller=player_controller(n_hidden_neurons), # you  can insert your own controller here
                 enemymode="static",
@@ -54,7 +54,7 @@ env = Environment(experiment_name=experiment_name,
 n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5
 
 # start writing your own code from here
-
+run_mode = "train"
 pop_size = 100
 max_f =-1
 avg_f =-1
@@ -63,7 +63,7 @@ maxGens=20
 Gen=0
 N_newGen=pop_size # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
 mutation_strength = 0.04
-
+overall_best = -1
 
 pop = np.random.uniform(-1, 1, (pop_size, n_vars)) #initialize population
 pop_f = evaluate(env,pop) #evaluate population
@@ -207,38 +207,53 @@ def mutate(individual):
 
     return individual
 
-while Gen < maxGens:
-    parents=[]
-    for i in range(int(N_newGen/2)): #Choose how many pairs of parents we want
-        parents.append(parent_selection(pop, pop_f,4, N_newGen))
-    new_kids = []
-    for pairs in parents: #Each pair of parents generates two offspring
-        baby1, baby2 = npoint_recombination(pairs[0], pairs[1],2)
-        new_kids.append(baby1)
-        new_kids.append(baby2)
 
-    #This is combining new and old and
-    """old_generation = pop.tolist()
-    total = old_generation + new_kids
-    total =np.array(total)
-    total_f = evaluate(env, total)
-    survivors = select_surv(total, total_f, 100)
-    for i in range(len(survivors)):
-        pop[i] = survivors[i]"""
+if run_mode =='test':
 
-    #This is without survivor select - age based
-    inds = kill_people(pop, N_newGen) # pick how many individuals we want to kill
-    for i in range(len(inds)):
-        pop[inds[i]] = new_kids[i]
+    bsol = np.loadtxt(experiment_name+'/best.txt')
+    print( '\n RUNNING SAVED BEST SOLUTION \n')
+    env.update_parameter('speed','normal')
+    evaluate([bsol])
+
+    sys.exit(0)
+else:
+    while Gen < maxGens:
+        parents=[]
+        for i in range(int(N_newGen/2)): #Choose how many pairs of parents we want
+            parents.append(parent_selection(pop, pop_f,4, N_newGen))
+        new_kids = []
+        for pairs in parents: #Each pair of parents generates two offspring
+            baby1, baby2 = npoint_recombination(pairs[0], pairs[1],2)
+            new_kids.append(baby1)
+            new_kids.append(baby2)
+
+        #This is combining new and old and
+        """old_generation = pop.tolist()
+        total = old_generation + new_kids
+        total =np.array(total)
+        total_f = evaluate(env, total)
+        survivors = select_surv(total, total_f, 100)
+        for i in range(len(survivors)):
+            pop[i] = survivors[i]"""
+
+        #This is without survivor select - age based
+        inds = kill_people(pop, N_newGen) # pick how many individuals we want to kill
+        for i in range(len(inds)):
+            pop[inds[i]] = new_kids[i]
 
 
-    Gen+=1
-    pop_f = evaluate(env,pop) #evaluate new population
-    max_f = max(pop_f)
-    avg_f = sum(pop_f) / len(pop_f)
-    low_f = min(pop_f)
-    print(max_f, avg_f,len(pop))
+        Gen+=1
+        pop_f = evaluate(env,pop) #evaluate new population
+        max_f = max(pop_f)
+        avg_f = sum(pop_f) / len(pop_f)
+        low_f = min(pop_f)
+        print(max_f, avg_f,len(pop))
 
+        if max_f > overall_best:
+            best = np.argmax(pop_f)
+            best_individual = pop[best]
+            overall_best = max_f
+            np.savetxt(experiment_name + '/best.txt', pop[best])
 
 
 

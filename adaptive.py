@@ -41,7 +41,7 @@ n_hidden_neurons = 10
 
 # initializes simulation in individual evolution mode, for single static enemy.
 env = Environment(experiment_name=experiment_name,
-                enemies=[2],
+                enemies=[6],
                 playermode="ai",
                 player_controller=player_controller(n_hidden_neurons), # you  can insert your own controller here
                 enemymode="static",
@@ -64,8 +64,9 @@ Gen=0
 N_newGen=pop_size*4 # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
 mutation_strength = 0.04
 fitness_survivor_no = 20 # how many children in the new generation will be from "best". The rest are random.
-gaussian_mutation_sd = 0.5 
-
+gaussian_mutation_sd = 0.5
+overall_best = -1
+fitness_history = []
 
 pop = np.random.uniform(-1, 1, (pop_size, n_vars)) #initialize population
 pop_f = evaluate(env,pop) #evaluate population
@@ -73,7 +74,7 @@ max_f=max(pop_f)
 avg_f = sum(pop_f)/len(pop_f)
 low_f = min(pop_f)
 print(max_f, avg_f)
-
+run_mode = "train"
 
 def random_points(n):
     crossover_list = []
@@ -183,7 +184,7 @@ def adaptive_tournament_selection(population, f_values, min_tournament_size=2, m
         if current_tournament_size < max_tournament_size:
             current_tournament_size += tournament_size_increment
 
-    print(len(selected_parents))
+    #print(len(selected_parents))
     return selected_parents  # Return the list of selected parents
 
 
@@ -216,39 +217,72 @@ def survivor_selector_mu_lambda(children, no_best_picks):
 
     return survivors
 
+if run_mode =='test':
 
-while Gen < maxGens:
-    # parents = []
-    # for i in range(int(N_newGen/2)):
-    #     parents.append(adaptive_tournament_selection(pop, pop_f, 6, N_newGen))
+    bsol = np.loadtxt(experiment_name+'/best.txt')
+    print( '\n RUNNING SAVED BEST SOLUTION \n')
+    env.update_parameter('speed','normal')
+    evaluate([bsol])
 
-    parents=[]
-    parents = adaptive_tournament_selection(pop, pop_f, 4) #generates 100 parents - parent selection seems to make the convergion faster
+    sys.exit(0)
+else:
 
-    new_kids = np.random.uniform(-1, 1, (N_newGen, n_vars)) #preallocate 600 kids
+    while Gen < maxGens:
+        # parents = []
+        # for i in range(int(N_newGen/2)):
+        #     parents.append(adaptive_tournament_selection(pop, pop_f, 6, N_newGen))
 
-    for i in range(0,N_newGen,2):
-        baby1, baby2 = uniform_recombination(parents[i], parents[i+1])
-        new_kids[i] = baby1
-        new_kids[i + 1] = baby2
+        parents=[]
+        parents = adaptive_tournament_selection(pop, pop_f, 4) #generates 100 parents - parent selection seems to make the convergion faster
+
+        new_kids = np.random.uniform(-1, 1, (N_newGen, n_vars)) #preallocate 600 kids
+
+        for i in range(0,N_newGen,2):
+            baby1, baby2 = uniform_recombination(parents[i], parents[i+1])
+            new_kids[i] = baby1
+            new_kids[i + 1] = baby2
 
 
-    """if len(new_kids) > 100:
-        for i in range(0,len(new_kids)-100, 2):
-            baby1, baby2 = uniform_recombination(parents[randint(0,99)], parents[randint(0,99)])
-            new_kids[i+100] = baby1
-            new_kids[i+101] = baby2"""
+        """if len(new_kids) > 100:
+            for i in range(0,len(new_kids)-100, 2):
+                baby1, baby2 = uniform_recombination(parents[randint(0,99)], parents[randint(0,99)])
+                new_kids[i+100] = baby1
+                new_kids[i+101] = baby2"""
 
 
-    survivors = survivor_selector_mu_lambda(new_kids, fitness_survivor_no)
-    for i in range(pop_size):
-        pop[i] = survivors[i]
+        survivors = survivor_selector_mu_lambda(new_kids, fitness_survivor_no)
+        for i in range(pop_size):
+            pop[i] = survivors[i]
 
-    Gen+=1
-    pop_f = evaluate(env,pop) #evaluate new population
-    max_f = max(pop_f)
-    avg_f = sum(pop_f) / len(pop_f)
-    low_f = min(pop_f)
-    print(max_f, avg_f)
+        Gen+=1
+        pop_f = evaluate(env,pop) #evaluate new population
+        max_f = max(pop_f)
+        avg_f = sum(pop_f) / len(pop_f)
+        low_f = min(pop_f)
+        print(max_f, avg_f)
+
+        if max_f > overall_best:
+            best = np.argmax(pop_f)
+            best_individual = pop[best]
+            overall_best = max_f
+            np.savetxt(experiment_name + '/best.txt', pop[best])
+        # Store fitness history for each generation
+
+       # Calculate and store the fitness values of the current population
+        fitness_values = evaluate(env, pop)
+        fitness_history.append(fitness_values)
+
+        # Calculate the standard deviation of fitness values
+        fitness_std = np.std(fitness_values)
+
+        # Print or log the fitness diversity metric for the current generation
+        print(f"Generation {Gen}: Fitness Diversity (Std Dev): {fitness_std}")
+
+    # After the loop, you can visualize the fitness diversity over generations if needed
+    plt.plot(range(maxGens), [np.std(fitness) for fitness in fitness_history])
+    plt.title("Fitness Diversity Over Generations")
+    plt.xlabel("Generation")
+    plt.ylabel("Standard Deviation of Fitness")
+    plt.show()
 
 
