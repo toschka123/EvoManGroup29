@@ -146,7 +146,7 @@ def mutate_gene_gaussian(gene):
     gene += mutation
     return gene
 
-def adaptive_tournament_selection(population, f_values, min_tournament_size=4, max_tournament_size=10):
+def adaptive_tournament_selection(population, f_values, min_tournament_size=2, max_tournament_size=6):
     num_parents = int(len(population))
     selected_parents = []  # List to store the selected parents
 
@@ -161,15 +161,14 @@ def adaptive_tournament_selection(population, f_values, min_tournament_size=4, m
     for _ in range(int(N_newGen/2)):
         # Randomly select individuals for the tournament (without replacement)
         tournament_indices = np.random.choice(num_parents, size=current_tournament_size, replace=False)
-        
         # Calculate the fitness values of the selected individuals
         tournament_fitness = [f_values[i] for i in tournament_indices]
 
         # Calculate the diversity score for each selected individual
-        for index in tournament_indices:
+        """for index in tournament_indices:
             # Calculate the absolute differences between the fitness of the selected individual
             # and the fitness of other individuals in the tournament, then take the mean.
-            diversity_scores[index] += np.mean(np.abs(tournament_fitness - f_values[index]))
+            diversity_scores[index] += np.mean(np.abs(tournament_fitness - f_values[index]))"""
 
         # Choose the best individual from the tournament as the parent
         best_index = tournament_indices[np.argmax(tournament_fitness)]
