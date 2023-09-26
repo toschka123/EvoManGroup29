@@ -28,7 +28,7 @@ def evaluate(env, x):
 
 
 # choose this for not using visuals and thus making experiments faster
-headless = True
+headless = False
 if headless:
     os.environ["SDL_VIDEODRIVER"] = "dummy"
 
@@ -47,7 +47,7 @@ env = Environment(experiment_name=experiment_name,
                 enemymode="static",
                 level=2,
                 speed="fastest",
-                visuals=False)
+                visuals=True)
 
 
 # number of weights for multilayer with 10 hidden neurons
@@ -74,7 +74,7 @@ max_f=max(pop_f)
 avg_f = sum(pop_f)/len(pop_f)
 low_f = min(pop_f)
 print(max_f, avg_f)
-run_mode = "train"
+run_mode = "test"
 
 def random_points(n):
     crossover_list = []
@@ -222,10 +222,11 @@ if run_mode =='test':
     bsol = np.loadtxt(experiment_name+'/best.txt')
     print( '\n RUNNING SAVED BEST SOLUTION \n')
     env.update_parameter('speed','normal')
-    evaluate([bsol])
+    evaluate(env, [bsol])
 
     sys.exit(0)
-else:
+
+elif run_mode == 'train':
 
     while Gen < maxGens:
         # parents = []
@@ -262,27 +263,35 @@ else:
         print(max_f, avg_f)
 
         if max_f > overall_best:
+            overall_best = max_f
+            print(overall_best)
             best = np.argmax(pop_f)
             best_individual = pop[best]
-            overall_best = max_f
-            np.savetxt(experiment_name + '/best.txt', pop[best])
+
+
+np.savetxt(experiment_name + '/best.txt', best_individual)
+# saves simulation state
+solutions = [pop, pop_f]
+env.update_solutions(solutions)
+env.save_state()
+
         # Store fitness history for each generation
 
        # Calculate and store the fitness values of the current population
-        fitness_values = evaluate(env, pop)
+"""        fitness_values = evaluate(env, pop)
         fitness_history.append(fitness_values)
 
         # Calculate the standard deviation of fitness values
-        fitness_std = np.std(fitness_values)
+        fitness_std = np.std(fitness_values)"""
 
         # Print or log the fitness diversity metric for the current generation
-        print(f"Generation {Gen}: Fitness Diversity (Std Dev): {fitness_std}")
+"""        print(f"Generation {Gen}: Fitness Diversity (Std Dev): {fitness_std}")
 
     # After the loop, you can visualize the fitness diversity over generations if needed
     plt.plot(range(maxGens), [np.std(fitness) for fitness in fitness_history])
     plt.title("Fitness Diversity Over Generations")
     plt.xlabel("Generation")
     plt.ylabel("Standard Deviation of Fitness")
-    plt.show()
+    plt.show()"""
 
 
