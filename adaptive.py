@@ -18,8 +18,6 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt 
 
-from scipy.spatial import distance
-from scipy.cluster import hierarchy
 # runs simulation
 def simulation(env,x):
     f,p,e,t = env.play(pcont=x)
@@ -152,12 +150,6 @@ def adaptive_tournament_selection(population, f_values, min_tournament_size=4, m
     return selected_parents  # Return the list of selected parents
 
 
-# def select_surv(pop, f_pop, N_remove=N_newGen):
-#     indxs= sorted(range(len(f_pop)), key=lambda k: f_pop[k])[N_remove:]
-#     survivors = []
-#     for i in indxs:
-#         survivors.append(pop[i])
-#     return survivors
 def assign_age(population):
     # Assign random ages to individuals in the population
     ages = [random.randint(0, 10) for _ in range(len(population))]
@@ -209,53 +201,6 @@ def mutate(individual):
 
     return individual
 
-
-# fitness_history = []  # Store fitness values for each generation
-
-# while Gen < maxGens:
-#     parents = []
-#     for i in range(int(N_newGen/2)):
-#         parents.append(adaptive_tournament_selection(pop, pop_f, 4, N_newGen))
-
-#     new_kids = []
-#     for pairs in parents:
-#         baby1, baby2 = recombination(pairs[0], pairs[1])
-#         new_kids.append(baby1)
-#         new_kids.append(baby2)
-
-
-#     old_generation = pop.tolist()
-#     total = old_generation + new_kids
-#     total =np.array(total)
-#     total_f = evaluate(env, total)
-#     survivors = select_surv(total, total_f, 100)
-#     for i in range(len(survivors)):
-#         pop[i] = survivors[i]
-
-#     Gen += 1
-#     pop_f = evaluate(env, pop)  # evaluate new population
-#     max_f = max(pop_f)
-#     avg_f = sum(pop_f) / len(pop_f)
-#     low_f = min(pop_f)
-#     print(max_f, avg_f, len(pop))
-
-#     # Calculate and store the fitness values of the current population
-#     fitness_values = evaluate(env, pop)
-#     fitness_history.append(fitness_values)
-
-#     # Calculate the standard deviation of fitness values
-#     fitness_std = np.std(fitness_values)
-
-#     # Print or log the fitness diversity metric for the current generation
-#     print(f"Generation {Gen}: Fitness Diversity (Std Dev): {fitness_std}")
-
-# # After the loop, you can visualize the fitness diversity over generations if needed
-# plt.plot(range(maxGens), [np.std(fitness) for fitness in fitness_history])
-# plt.title("Fitness Diversity Over Generations")
-# plt.xlabel("Generation")
-# plt.ylabel("Standard Deviation of Fitness")
-# plt.show()
-
 max_age = 15  # Maximum age for individuals
 
 # Initialize ages for the initial population
@@ -286,7 +231,6 @@ while Gen < maxGens:
 
     # Select survivors using age-based survivor selection
     survivors = age_based_survivor_selection(total, total_f, pop_size, max_age, tournament_size=6)
-
     # Update the population with survivors and their ages
     for i in range(len(survivors)):
         pop[i] = survivors[i]
