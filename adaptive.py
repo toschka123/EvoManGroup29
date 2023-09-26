@@ -41,7 +41,7 @@ n_hidden_neurons = 10
 
 # initializes simulation in individual evolution mode, for single static enemy.
 env = Environment(experiment_name=experiment_name,
-                enemies=[6],
+                enemies=[2],
                 playermode="ai",
                 player_controller=player_controller(n_hidden_neurons), # you  can insert your own controller here
                 enemymode="static",
@@ -61,7 +61,7 @@ avg_f =-1
 low_f = 999
 maxGens=20
 Gen=0
-N_newGen=pop_size # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
+N_newGen=pop_size*4 # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
 mutation_strength = 0.04
 fitness_survivor_no = 20 # how many children in the new generation will be from "best". The rest are random.
 gaussian_mutation_sd = 0.5 
@@ -146,7 +146,7 @@ def mutate_gene_gaussian(gene):
     gene += mutation
     return gene
 
-def adaptive_tournament_selection(population, f_values, min_tournament_size=4, max_tournament_size=10):
+def adaptive_tournament_selection(population, f_values, min_tournament_size=2, max_tournament_size=6):
     num_parents = int(len(population))
     selected_parents = []  # List to store the selected parents
 
@@ -158,18 +158,17 @@ def adaptive_tournament_selection(population, f_values, min_tournament_size=4, m
     tournament_size_increment = 1  # Increment to adjust tournament size (can be modified)
 
     # Loop over the number of parents to select
-    for _ in range(num_parents):
+    for _ in range(int(N_newGen/2)):
         # Randomly select individuals for the tournament (without replacement)
         tournament_indices = np.random.choice(num_parents, size=current_tournament_size, replace=False)
-        
         # Calculate the fitness values of the selected individuals
         tournament_fitness = [f_values[i] for i in tournament_indices]
 
         # Calculate the diversity score for each selected individual
-    for index in tournament_indices:
-        # Calculate the absolute differences between the fitness of the selected individual
-        # and the fitness of other individuals in the tournament, then take the mean.
-        diversity_scores[index] += np.mean(np.abs(tournament_fitness - f_values[index]))
+        """for index in tournament_indices:
+            # Calculate the absolute differences between the fitness of the selected individual
+            # and the fitness of other individuals in the tournament, then take the mean.
+            diversity_scores[index] += np.mean(np.abs(tournament_fitness - f_values[index]))"""
 
         # Choose the best individual from the tournament as the parent
         best_index = tournament_indices[np.argmax(tournament_fitness)]
@@ -177,8 +176,8 @@ def adaptive_tournament_selection(population, f_values, min_tournament_size=4, m
         # Append the best individual to the list of selected parents
         selected_parents.append(population[best_index])
 
-        #second_parent_ind = random.randint(0, 99)
-        #selected_parents.append(population[second_parent_ind])
+        second_parent_ind = random.randint(0, 99)
+        selected_parents.append(population[second_parent_ind])
 
         # Update tournament size for the next selection (adaptive)
         if current_tournament_size < max_tournament_size:
@@ -224,15 +223,21 @@ while Gen < maxGens:
     #     parents.append(adaptive_tournament_selection(pop, pop_f, 6, N_newGen))
 
     parents=[]
-    parents = adaptive_tournament_selection(pop, pop_f, 100) #generates 100 parents - parent selection seems to make the convergion faster
+    parents = adaptive_tournament_selection(pop, pop_f, 4) #generates 100 parents - parent selection seems to make the convergion faster
 
-    new_kids = np.random.uniform(-1, 1, (2*pop_size, n_vars)) #preallocate 600 kids
+    new_kids = np.random.uniform(-1, 1, (N_newGen, n_vars)) #preallocate 600 kids
 
-    for i in range(0,100,2):
-        baby1, baby2 = recombination(parents[i], parents[i+1])
-
+    for i in range(0,N_newGen,2):
+        baby1, baby2 = uniform_recombination(parents[i], parents[i+1])
         new_kids[i] = baby1
-        new_kids[i+1] = baby2
+        new_kids[i + 1] = baby2
+
+
+    """if len(new_kids) > 100:
+        for i in range(0,len(new_kids)-100, 2):
+            baby1, baby2 = uniform_recombination(parents[randint(0,99)], parents[randint(0,99)])
+            new_kids[i+100] = baby1
+            new_kids[i+101] = baby2"""
 
 
     survivors = survivor_selector_mu_lambda(new_kids, fitness_survivor_no)
