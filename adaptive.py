@@ -147,7 +147,7 @@ def mutate_gene_gaussian(gene):
     return gene
 
 def adaptive_tournament_selection(population, f_values, min_tournament_size=4, max_tournament_size=10):
-    num_parents = len(population)
+    num_parents = int(len(population))
     selected_parents = []  # List to store the selected parents
 
     # Track the diversity of individuals using an array of zeros
@@ -176,6 +176,9 @@ def adaptive_tournament_selection(population, f_values, min_tournament_size=4, m
 
         # Append the best individual to the list of selected parents
         selected_parents.append(population[best_index])
+
+        #second_parent_ind = random.randint(0, 99)
+        #selected_parents.append(population[second_parent_ind])
 
         # Update tournament size for the next selection (adaptive)
         if current_tournament_size < max_tournament_size:
@@ -215,28 +218,6 @@ def survivor_selector_mu_lambda(children, no_best_picks):
     return survivors
 
 
-"""def kill_tournament(population, f_values, tournament_size=8): 
-    num_parents = len(population)
-    selected_deaths = []
-    for _ in range(num_parents):
-        tournament_indices = np.random.choice(num_parents, size=tournament_size, replace=False)
-        tournament_individuals = [population[i] for i in tournament_indices]
-        tournament_fitness = [f_values[i] for i in tournament_indices]
-        # Choose the best individual from the tournament as the parent
-        best_index = np.argmin(tournament_fitness)
-        selected_deaths.append(tournament_individuals[best_index])
-    return selected_deaths"""
-
-# def mutate(individual):
-#     mutation_strength = 0.1  # You can adjust this value based on your problem
-
-#     for i in range(len(individual)):
-#         if random.random() < mutation_strength:
-#             individual[i] += random.uniform(-1, 1)  # You can adjust the mutation range
-
-#     return individual
-
-
 while Gen < maxGens:
     # parents = []
     # for i in range(int(N_newGen/2)):
@@ -247,8 +228,8 @@ while Gen < maxGens:
 
     new_kids = np.random.uniform(-1, 1, (2*pop_size, n_vars)) #preallocate 600 kids
 
-    for i in range(0,len(new_kids),2):
-        baby1, baby2 = uniform_recombination(parents[random.randint(0, 99)], parents[random.randint(0, 99)])
+    for i in range(0,100,2):
+        baby1, baby2 = recombination(parents[i], parents[i+1])
 
         new_kids[i] = baby1
         new_kids[i+1] = baby2
