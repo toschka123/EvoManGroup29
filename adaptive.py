@@ -7,7 +7,7 @@
 
 # imports framework
 import sys
-
+import math
 from evoman.environment import Environment
 from demo_controller import player_controller
 from random import randint, random
@@ -26,6 +26,11 @@ def simulation(env,x):
 def evaluate(env, x):
     return np.array(list(map(lambda y: simulation(env,y), x)))
 
+
+#Function that returns the population with only the 265 weights, no sigma
+def pop_weights_only(pop):
+    weights_only = pop[:,1:]
+    return weights_only
 
 # choose this for not using visuals and thus making experiments faster
 headless = True
@@ -50,8 +55,8 @@ env = Environment(experiment_name=experiment_name,
                 visuals=False)
 
 
-# number of weights for multilayer with 10 hidden neurons
-n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5
+# number of variables for multilayer with 10 hidden neurons (265) plus one sigma value
+n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5 +1
 
 # start writing your own code from here
 
@@ -62,43 +67,64 @@ low_f = 999
 maxGens=20
 Gen=0
 N_newGen=pop_size*4 # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
-mutation_strength = 0.04
+mutation_threshold = 0.04
 fitness_survivor_no = 20 # how many children in the new generation will be from "best". The rest are random.
 gaussian_mutation_sd = 0.5
 overall_best = -1
 fitness_history = []
 
-pop = np.random.uniform(-1, 1, (pop_size, n_vars)) #initialize population
-pop_f = evaluate(env,pop) #evaluate population
-max_f=max(pop_f)
+#Generate 266 genes, at loc 0 we find the sigma, the rest of the array is the weights
+pop = np.random.uniform(-1, 1, (pop_size, n_vars)) #Initialize population, with extra value for the weights
+
+#Define the bounds of your initial sigma values and tao for self-adaptive mutation
+sigma_i_U = 0.1
+sigma_i_L = 0.01
+tao = 0.05
+
+#Generate the initial sigma values and place them at location 0 for each individual array
+sigma_vals_i = [random.uniform(sigma_i_U,sigma_i_L) for individual in range(pop_size)]
+pop[:, 0] = sigma_vals_i
+
+#Evaluate population
+pop_f = evaluate(env,pop[:,1:])
+max_f = max(pop_f)
 avg_f = sum(pop_f)/len(pop_f)
 low_f = min(pop_f)
 print(max_f, avg_f)
 run_mode = "train"
 
-def random_points(n):
-    crossover_list = []
-    for i in range(n):
-        # generate random point in the list of weights
-        k = random.randint(0, 265)
-        # checking the point is not already in the list
-        if k not in crossover_list:
-            crossover_list.append(k)
-
-    crossover_list.sort()
-    return crossover_list
-
-def crossover (p1, p2, point):
-        for i in range(point, len(p1)):
-            p1[i], p2[i] = p2[i], p1[i]
-        return p1, p2
-
 #Uniform recombination
 def uniform_recombination(i1, i2): #Takes as input two parents and returns 2 babies, in each position 50% chance to have parent1's gene
     baby1=[]
     baby2=[]
-    for i in range(len(i1)):
 
+    #Start with choosing which sigma to inherit
+    if randint(0, 1) == 1:
+        baby1.append(i1[0])
+        baby2.append(i2[0])
+    else:
+        baby2.append(i1[0])
+        baby1.append(i2[0])
+
+    #Then possibly perform mutation on either the sigma of your first or your second baby
+    if random.random() > mutation_threshold:
+
+        #Generate the stepsize (mutation size) of your sigma value
+        step_size = math.e ** (tao * np.random.normal(0, 1))
+
+        #Decide which baby to mutate and assign it its new sigma
+        if randint(0, 1) == 1:
+            sigma_prime = baby1[0] + step_size
+            baby1[0] = sigma_prime
+
+        else:
+            sigma_prime = baby2[0] + step_size
+            baby2[0] = sigma_prime
+
+    sigma1 = baby1[0]
+    sigma2 = baby2[0]
+
+    for i in range(1,len(i1)):
         if randint(0,1) == 1:
             baby1.append(i1[i])
             baby2.append(i2[i])
@@ -106,36 +132,20 @@ def uniform_recombination(i1, i2): #Takes as input two parents and returns 2 bab
             baby1.append(i2[i])
             baby2.append(i1[i])
 
-        if random.random() > mutation_strength:
-            baby1[i] = mutate_gene_gaussian(baby1[i])
+        if random.random() > mutation_threshold:
+            baby1[i] = mutate_gene_sa(baby1[i], sigma1)
+            #baby2[i] = mutate_gene_sa(baby2[i], sigma2)
 
     return baby1, baby2
 
-#n-point crossover
-def npoint_recombination(i1, i2, n):
-    # find the crossover point locations
-    crossover_locs = random_points(n)
 
-    # track the crossover points
-    swapped = False
-
-    #loop over weights and swap weights between parents until you encounter the next crossover location
-    for i in range(len(i1)):
-        if swapped:
-            if i in crossover_locs:
-                swapped = False
-            else:
-                i1[i], i2[i] = i2[i], i1[i]
-        elif not swapped and i in crossover_locs:
-            swapped = True
-
-    return i1, i2
-
-def mutate(individual):
-    for i in range(len(individual)):
-        if random.random() < mutation_strength:
-            individual[i] += random.uniform(-1, 1)  # You can adjust the mutation range
-    return individual
+def mutate_gene_sa(gene, s):
+    #Only perform mutation when result stays within weight range (-1,1)
+    mutation = s * np.random.normal(0,1)
+    while abs(gene + mutation) > 1:
+        mutation = s * np.random.normal(0,1)
+    gene += mutation
+    return gene
 
 
 def mutate_gene_gaussian(gene):
