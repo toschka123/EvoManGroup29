@@ -254,11 +254,6 @@ elif run_mode == 'train':
 
 
     pop = np.random.uniform(-1, 1, (pop_size, n_vars))  # initialize population
-    pop_f = evaluate(env, pop)  # evaluate population
-    max_f = max(pop_f)
-    avg_f = sum(pop_f) / len(pop_f)
-    low_f = min(pop_f)
-    print(max_f, avg_f)
 
     while Gen < maxGens:
         # parents = []
