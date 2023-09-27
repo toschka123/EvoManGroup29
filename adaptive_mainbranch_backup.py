@@ -7,7 +7,7 @@
 
 # imports framework
 import sys
-import math
+
 from evoman.environment import Environment
 from demo_controller import player_controller
 from random import randint, random
@@ -27,15 +27,11 @@ def evaluate(env, x):
     return np.array(list(map(lambda y: simulation(env,y), x)))
 
 
-#Function that returns the population with only the 265 weights, no sigma
-def pop_weights_only(pop):
-    weights_only = pop[:,1:]
-    return weights_only
-
 # choose this for not using visuals and thus making experiments faster
 headless = False
 if headless:
     os.environ["SDL_VIDEODRIVER"] = "dummy"
+
 
 experiment_name = 'optimization_test'
 if not os.path.exists(experiment_name):
@@ -54,15 +50,14 @@ env = Environment(experiment_name=experiment_name,
                 visuals=False)
 
 
-# number of variables for multilayer with 10 hidden neurons (265) plus one sigma value
-n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5 +1
+# number of weights for multilayer with 10 hidden neurons
+n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5
 
 # start writing your own code from here
 pop_size = 100
 max_f = -1
 avg_f = -1
 low_f = 999
-
 maxGens = 20
 Gen = 0
 N_newGen = pop_size * 4  # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
@@ -72,58 +67,31 @@ gaussian_mutation_sd = 0.5
 overall_best = -1
 fitness_history = []
 
-#Generate 266 genes, at loc 0 we find the sigma, the rest of the array is the weights
-pop = np.random.uniform(-1, 1, (pop_size, n_vars)) #Initialize population, with extra value for the weights
+run_mode = "test"
 
-#Define the bounds of your initial sigma values and tao for self-adaptive mutation
-sigma_i_U = 0.1
-sigma_i_L = 0.01
-tao = 0.05
+def random_points(n):
+    crossover_list = []
+    for i in range(n):
+        # generate random point in the list of weights
+        k = random.randint(0, 265)
+        # checking the point is not already in the list
+        if k not in crossover_list:
+            crossover_list.append(k)
 
-#Generate the initial sigma values and place them at location 0 for each individual array
-sigma_vals_i = [random.uniform(sigma_i_U,sigma_i_L) for individual in range(pop_size)]
-pop[:, 0] = sigma_vals_i
+    crossover_list.sort()
+    return crossover_list
 
-#Evaluate population
-pop_f = evaluate(env,pop_weights_only(pop))
-max_f = max(pop_f)
-avg_f = sum(pop_f)/len(pop_f)
-low_f = min(pop_f)
-print(max_f, avg_f)
-run_mode = "train"
+def crossover (p1, p2, point):
+        for i in range(point, len(p1)):
+            p1[i], p2[i] = p2[i], p1[i]
+        return p1, p2
 
 #Uniform recombination
 def uniform_recombination(i1, i2): #Takes as input two parents and returns 2 babies, in each position 50% chance to have parent1's gene
     baby1=[]
     baby2=[]
+    for i in range(len(i1)):
 
-    #Start with choosing which sigma to inherit
-    if randint(0, 1) == 1:
-        baby1.append(i1[0])
-        baby2.append(i2[0])
-    else:
-        baby2.append(i1[0])
-        baby1.append(i2[0])
-
-    #Then possibly perform mutation on either the sigma of your first or your second baby
-    if random.random() > mutation_threshold:
-
-        #Generate the stepsize (mutation size) of your sigma value
-        step_size = math.e ** (tao * np.random.normal(0, 1))
-
-        #Decide which baby to mutate and assign it its new sigma
-        if randint(0, 1) == 1:
-            sigma_prime = baby1[0] + step_size
-            baby1[0] = sigma_prime
-
-        else:
-            sigma_prime = baby2[0] + step_size
-            baby2[0] = sigma_prime
-
-    sigma1 = baby1[0]
-    sigma2 = baby2[0]
-
-    for i in range(1,len(i1)):
         if randint(0,1) == 1:
             baby1.append(i1[i])
             baby2.append(i2[i])
@@ -131,20 +99,36 @@ def uniform_recombination(i1, i2): #Takes as input two parents and returns 2 bab
             baby1.append(i2[i])
             baby2.append(i1[i])
 
-        if random.random() > mutation_threshold:
-            baby1[i] = mutate_gene_sa(baby1[i], sigma1)
-            #baby2[i] = mutate_gene_sa(baby2[i], sigma2)
+        if random.random() > mutation_strength:
+            baby1[i] = mutate_gene_gaussian(baby1[i])
 
     return baby1, baby2
 
+#n-point crossover
+def npoint_recombination(i1, i2, n):
+    # find the crossover point locations
+    crossover_locs = random_points(n)
 
-def mutate_gene_sa(gene, s):
-    #Only perform mutation when result stays within weight range (-1,1)
-    mutation = s * np.random.normal(0,1)
-    while abs(gene + mutation) > 1:
-        mutation = s * np.random.normal(0,1)
-    gene += mutation
-    return gene
+    # track the crossover points
+    swapped = False
+
+    #loop over weights and swap weights between parents until you encounter the next crossover location
+    for i in range(len(i1)):
+        if swapped:
+            if i in crossover_locs:
+                swapped = False
+            else:
+                i1[i], i2[i] = i2[i], i1[i]
+        elif not swapped and i in crossover_locs:
+            swapped = True
+
+    return i1, i2
+
+def mutate(individual):
+    for i in range(len(individual)):
+        if random.random() < mutation_strength:
+            individual[i] += random.uniform(-1, 1)  # You can adjust the mutation range
+    return individual
 
 
 def mutate_gene_gaussian(gene):
@@ -206,19 +190,13 @@ def kill_people(population, howManyShouldDie): #kill random individual
     choiceInd = random.sample(range(0,len(population)), howManyShouldDie)
     return choiceInd
 
-def select_surv(population, f_population, N_remove=N_newGen):
-
-    #Generate population without sigma
-    pop = pop_weights_only(population)
-    f_pop = pop_weights_only(f_population)
-
+def select_surv(pop, f_pop, N_remove=N_newGen):
     indxs= sorted(range(len(f_pop)), key=lambda k: f_pop[k])[N_remove:]
     survivors = []
     for i in indxs:
         survivors.append(pop[i])
-
-    #Here we should probably add the sigma back to survivors?
     return survivors
+
 
 # Returns a survivor array containing surviving children (only!).
 # Some (small) number of surviving children are picked based on fitness.
@@ -226,14 +204,11 @@ def select_surv(population, f_population, N_remove=N_newGen):
 def survivor_selector_mu_lambda(children, no_best_picks):
     survivors = np.random.uniform(-1, 1, (pop_size, n_vars)) #preallocate a random array for survivors
 
-    children_without_sigma = pop_weights_only(children)
-
-    children_fitness = evaluate(env, children_without_sigma)
-
+    children_fitness = evaluate(env, children)
     indices_best_children = np.argpartition(children_fitness, -no_best_picks)[-no_best_picks:]
 
     for i in range(no_best_picks): #add some number of best children to the new population
-        survivors[i] = children[indices_best_children[i]]
+        survivors[i] =children[indices_best_children[i]] 
     
     for i in range(no_best_picks, pop_size): #fill the rest of the population with random children
         survivors[i] = children[random.randint(0, pop_size-1)]
@@ -282,18 +257,13 @@ elif run_mode == 'train':
                 new_kids[i+100] = baby1
                 new_kids[i+101] = baby2"""
 
-        #print(f"new_kids: {new_kids}")
-        #print(f"shape: {len(new_kids), len(new_kids[0])}")
-        #print(f"fitness_survivor_no: {fitness_survivor_no}")
+
         survivors = survivor_selector_mu_lambda(new_kids, fitness_survivor_no)
         for i in range(pop_size):
             pop[i] = survivors[i]
 
         Gen+=1
-
-        pop_without_sigma = pop_weights_only(pop)
-
-        pop_f = evaluate(env,pop_without_sigma) #evaluate new population
+        pop_f = evaluate(env,pop) #evaluate new population
         max_f = max(pop_f)
         avg_f = sum(pop_f) / len(pop_f)
         low_f = min(pop_f)
@@ -302,26 +272,32 @@ elif run_mode == 'train':
         if max_f > overall_best:
             overall_best = max_f
             best = np.argmax(pop_f)
-            best_individual = pop_without_sigma[best]
-            overall_best = max_f
-            np.savetxt(experiment_name + '/best.txt', pop_without_sigma[best])
+            best_individual = pop[best]
+
+
+np.savetxt(experiment_name + '/best.txt', best_individual)
+# saves simulation state
+solutions = [pop, pop_f]
+env.update_solutions(solutions)
+env.save_state()
+
         # Store fitness history for each generation
 
-        # Calculate and store the fitness values of the current population
-        fitness_values = evaluate(env, pop_without_sigma)
+       # Calculate and store the fitness values of the current population
+"""        fitness_values = evaluate(env, pop)
         fitness_history.append(fitness_values)
 
         # Calculate the standard deviation of fitness values
-        fitness_std = np.std(fitness_values)
+        fitness_std = np.std(fitness_values)"""
 
         # Print or log the fitness diversity metric for the current generation
-        print(f"Generation {Gen}: Fitness Diversity (Std Dev): {fitness_std}")
+"""        print(f"Generation {Gen}: Fitness Diversity (Std Dev): {fitness_std}")
 
     # After the loop, you can visualize the fitness diversity over generations if needed
     plt.plot(range(maxGens), [np.std(fitness) for fitness in fitness_history])
     plt.title("Fitness Diversity Over Generations")
     plt.xlabel("Generation")
     plt.ylabel("Standard Deviation of Fitness")
-    plt.show()
+    plt.show()"""
 
 
