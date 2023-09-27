@@ -252,9 +252,6 @@ if run_mode =='test':
 
 elif run_mode == 'train':
 
-
-    pop = np.random.uniform(-1, 1, (pop_size, n_vars))  # initialize population
-
     while Gen < maxGens:
         # parents = []
         # for i in range(int(N_newGen/2)):
