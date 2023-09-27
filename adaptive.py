@@ -37,7 +37,6 @@ headless = True
 if headless:
     os.environ["SDL_VIDEODRIVER"] = "dummy"
 
-
 experiment_name = 'optimization_test'
 if not os.path.exists(experiment_name):
     os.makedirs(experiment_name)
@@ -86,7 +85,7 @@ sigma_vals_i = [random.uniform(sigma_i_U,sigma_i_L) for individual in range(pop_
 pop[:, 0] = sigma_vals_i
 
 #Evaluate population
-pop_f = evaluate(env,pop[:,1:])
+pop_f = evaluate(env,pop_weights_only(pop))
 max_f = max(pop_f)
 avg_f = sum(pop_f)/len(pop_f)
 low_f = min(pop_f)
@@ -202,19 +201,25 @@ def kill_people(population, howManyShouldDie): #kill random individual
     choiceInd = random.sample(range(0,len(population)), howManyShouldDie)
     return choiceInd
 
-def select_surv(pop, f_pop, N_remove=N_newGen):
+def select_surv(population, f_population, N_remove=N_newGen):
+
+    #Generate population without sigma
+    pop = pop_weights_only(population)
+    f_pop = pop_weights_only(f_population)
+
     indxs= sorted(range(len(f_pop)), key=lambda k: f_pop[k])[N_remove:]
     survivors = []
     for i in indxs:
         survivors.append(pop[i])
-    return survivors
 
+    #Here we should probably add the sigma back to survivors?
+    return survivors
 
 # Returns a survivor array containing surviving children (only!).
 # Some (small) number of surviving children are picked based on fitness.
 # The rest are picked randomly.
 def survivor_selector_mu_lambda(children, no_best_picks):
-    survivors = np.random.uniform(-1, 1, (pop_size, n_vars)) #preallocate a random array for survivors
+    survivors = np.random.uniform(-1, 1, (pop_size, n_vars - 1)) #preallocate a random array for survivors
 
     children_fitness = evaluate(env, children)
     indices_best_children = np.argpartition(children_fitness, -no_best_picks)[-no_best_picks:]
