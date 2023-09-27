@@ -219,13 +219,16 @@ def select_surv(population, f_population, N_remove=N_newGen):
 # Some (small) number of surviving children are picked based on fitness.
 # The rest are picked randomly.
 def survivor_selector_mu_lambda(children, no_best_picks):
-    survivors = np.random.uniform(-1, 1, (pop_size, n_vars - 1)) #preallocate a random array for survivors
+    survivors = np.random.uniform(-1, 1, (pop_size, n_vars)) #preallocate a random array for survivors
 
-    children_fitness = evaluate(env, children)
+    children_without_sigma = pop_weights_only(children)
+
+    children_fitness = evaluate(env, children_without_sigma)
+
     indices_best_children = np.argpartition(children_fitness, -no_best_picks)[-no_best_picks:]
 
     for i in range(no_best_picks): #add some number of best children to the new population
-        survivors[i] =children[indices_best_children[i]] 
+        survivors[i] = children[indices_best_children[i]]
     
     for i in range(no_best_picks, pop_size): #fill the rest of the population with random children
         survivors[i] = children[random.randint(0, pop_size-1)]
@@ -264,13 +267,18 @@ else:
                 new_kids[i+100] = baby1
                 new_kids[i+101] = baby2"""
 
-
+        #print(f"new_kids: {new_kids}")
+        #print(f"shape: {len(new_kids), len(new_kids[0])}")
+        #print(f"fitness_survivor_no: {fitness_survivor_no}")
         survivors = survivor_selector_mu_lambda(new_kids, fitness_survivor_no)
         for i in range(pop_size):
             pop[i] = survivors[i]
 
         Gen+=1
-        pop_f = evaluate(env,pop) #evaluate new population
+
+        pop_without_sigma = pop_weights_only(pop)
+
+        pop_f = evaluate(env,pop_without_sigma) #evaluate new population
         max_f = max(pop_f)
         avg_f = sum(pop_f) / len(pop_f)
         low_f = min(pop_f)
@@ -278,13 +286,13 @@ else:
 
         if max_f > overall_best:
             best = np.argmax(pop_f)
-            best_individual = pop[best]
+            best_individual = pop_without_sigma[best]
             overall_best = max_f
-            np.savetxt(experiment_name + '/best.txt', pop[best])
+            np.savetxt(experiment_name + '/best.txt', pop_without_sigma[best])
         # Store fitness history for each generation
 
        # Calculate and store the fitness values of the current population
-        fitness_values = evaluate(env, pop)
+        fitness_values = evaluate(env, pop_without_sigma)
         fitness_history.append(fitness_values)
 
         # Calculate the standard deviation of fitness values
