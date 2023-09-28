@@ -177,12 +177,6 @@ def adaptive_tournament_selection(population, f_values, min_tournament_size=2, m
         tournament_fitness = [f_values[i] for i in tournament_indices]
         best_index1 = tournament_indices[np.argmax(tournament_fitness)]
 
-        # Calculate the diversity score for each selected individual
-        """for index in tournament_indices:
-            # Calculate the absolute differences between the fitness of the selected individual
-            # and the fitness of other individuals in the tournament, then take the mean.
-            diversity_scores[index] += np.mean(np.abs(tournament_fitness - f_values[index]))"""
-
         # Choose the best individual from the tournament as the parent
         tournament_indices = np.random.choice(num_parents, size=max_tournament_size, replace=False)
         # Calculate the fitness values of the selected individuals
@@ -193,34 +187,9 @@ def adaptive_tournament_selection(population, f_values, min_tournament_size=2, m
         selected_parents.append(population[best_index1])
         selected_parents.append(population[best_index2])
 
-        #second_parent_ind = random.randint(0, 99)
-        #selected_parents.append(population[second_parent_ind])
-
-        """# Update tournament size for the next selection (adaptive)
-        if current_tournament_size < max_tournament_size:
-            current_tournament_size += tournament_size_increment"""
-
     #print(len(selected_parents))
     return selected_parents  # Return the list of selected parents
 
-
-def kill_people(population, howManyShouldDie): #kill random individual
-    choiceInd = random.sample(range(0,len(population)), howManyShouldDie)
-    return choiceInd
-
-def select_surv(population, f_population, N_remove=N_newGen):
-
-    #Generate population without sigma
-    pop = pop_weights_only(population)
-    f_pop = pop_weights_only(f_population)
-
-    indxs= sorted(range(len(f_pop)), key=lambda k: f_pop[k])[N_remove:]
-    survivors = []
-    for i in indxs:
-        survivors.append(pop[i])
-
-    #Here we should probably add the sigma back to survivors?
-    return survivors
 
 # Returns a survivor array containing surviving children (only!).
 # Some (small) number of surviving children are picked based on fitness.
