@@ -33,7 +33,7 @@ def pop_weights_only(pop):
     return weights_only
 
 # choose this for not using visuals and thus making experiments faster
-headless = False
+headless = True
 if headless:
     os.environ["SDL_VIDEODRIVER"] = "dummy"
 
@@ -45,7 +45,7 @@ n_hidden_neurons = 10
 
 # initializes simulation in individual evolution mode, for single static enemy.
 env = Environment(experiment_name=experiment_name,
-                enemies=[7],
+                enemies=[6],
                 playermode="ai",
                 player_controller=player_controller(n_hidden_neurons), # you  can insert your own controller here
                 enemymode="static",
@@ -113,11 +113,11 @@ def uniform_recombination(i1, i2): #Takes as input two parents and returns 2 bab
 
         #Decide which baby to mutate and assign it its new sigma
         if randint(0, 1) == 1:
-            sigma_prime = baby1[0] + step_size
+            sigma_prime = baby1[0] * step_size
             baby1[0] = sigma_prime
 
         else:
-            sigma_prime = baby2[0] + step_size
+            sigma_prime = baby2[0] * step_size
             baby2[0] = sigma_prime
 
     sigma1 = baby1[0]
@@ -133,7 +133,9 @@ def uniform_recombination(i1, i2): #Takes as input two parents and returns 2 bab
 
         if random.random() > mutation_threshold:
             baby1[i] = mutate_gene_sa(baby1[i], sigma1)
-            #baby2[i] = mutate_gene_sa(baby2[i], sigma2)
+        if random.random() > mutation_threshold:
+            baby2[i] = mutate_gene_sa(baby1[i], sigma2)
+
 
     return baby1, baby2
 
