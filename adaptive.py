@@ -11,6 +11,7 @@ import math
 from evoman.environment import Environment
 from demo_controller import player_controller
 from random import randint, random
+from save_run import save_run
 import random
 # imports other libs
 import numpy as np
@@ -33,7 +34,7 @@ def pop_weights_only(pop):
     return weights_only
 
 # choose this for not using visuals and thus making experiments faster
-headless = False
+headless = True
 if headless:
     os.environ["SDL_VIDEODRIVER"] = "dummy"
 
@@ -62,7 +63,6 @@ pop_size = 100
 max_f = -1
 avg_f = -1
 low_f = 999
-
 maxGens = 20
 Gen = 0
 N_newGen = pop_size * 4  # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
@@ -70,6 +70,8 @@ mutation_threshold = 0.04
 fitness_survivor_no = 20  # how many children in the new generation will be from "best". The rest are random.
 gaussian_mutation_sd = 0.5
 overall_best = -1
+fitness_avg_history = []
+fitness_best_history = []
 fitness_history = []
 
 #Generate 266 genes, at loc 0 we find the sigma, the rest of the array is the weights
@@ -83,6 +85,7 @@ tao = 0.05
 #Generate the initial sigma values and place them at location 0 for each individual array
 sigma_vals_i = [random.uniform(sigma_i_U,sigma_i_L) for individual in range(pop_size)]
 pop[:, 0] = sigma_vals_i
+avg_sigma_start = sum(sigma_vals_i)/len(sigma_vals_i)
 
 #Evaluate population
 pop_f = evaluate(env,pop_weights_only(pop))
@@ -113,11 +116,11 @@ def uniform_recombination(i1, i2): #Takes as input two parents and returns 2 bab
 
         #Decide which baby to mutate and assign it its new sigma
         if randint(0, 1) == 1:
-            sigma_prime = baby1[0] + step_size
+            sigma_prime = baby1[0] * step_size
             baby1[0] = sigma_prime
 
         else:
-            sigma_prime = baby2[0] + step_size
+            sigma_prime = baby2[0] * step_size
             baby2[0] = sigma_prime
 
     sigma1 = baby1[0]
@@ -259,7 +262,6 @@ elif run_mode == 'train':
 
         parents=[]
         parents = adaptive_tournament_selection(pop, pop_f, 4) #generates 100 parents - parent selection seems to make the convergion faster
-
         new_kids = np.random.uniform(-1, 1, (N_newGen, n_vars)) #preallocate 600 kids
 
         for i in range(0,N_newGen,2):
@@ -291,11 +293,15 @@ elif run_mode == 'train':
         low_f = min(pop_f)
         print(max_f, avg_f)
 
+        fitness_avg_history.append((avg_f))
+        fitness_best_history.append(max_f)
+
         if max_f > overall_best:
             overall_best = max_f
             best = np.argmax(pop_f)
             best_individual = pop_without_sigma[best]
             overall_best = max_f
+
             np.savetxt(experiment_name + '/best.txt', pop_without_sigma[best])
         # Store fitness history for each generation
 
@@ -309,6 +315,8 @@ elif run_mode == 'train':
         # Print or log the fitness diversity metric for the current generation
         print(f"Generation {Gen}: Fitness Diversity (Std Dev): {fitness_std}")
 
+    avg_sigma_end = sum(pop[:,1])/len(pop[:,1])
+    save_run(fitness_avg_history, fitness_best_history, avg_sigma_start, avg_sigma_end)
     # After the loop, you can visualize the fitness diversity over generations if needed
     plt.plot(range(maxGens), [np.std(fitness) for fitness in fitness_history])
     plt.title("Fitness Diversity Over Generations")
