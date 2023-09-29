@@ -265,7 +265,7 @@ elif run_mode == 'train':
         print(max_f, avg_f)
 
         fitness_avg_history.append((avg_f))
-        fitness_best_history.append(max_f)
+
 
         if max_f > overall_best:
             overall_best = max_f
@@ -274,8 +274,8 @@ elif run_mode == 'train':
             overall_best = max_f
 
             np.savetxt(experiment_name + '/best.txt', pop_without_sigma[best])
-        # Store fitness history for each generation
-
+            
+        fitness_best_history.append(overall_best)
         # Calculate and store the fitness values of the current population
         fitness_values = evaluate(env, pop_without_sigma)
         fitness_history.append(fitness_values)
