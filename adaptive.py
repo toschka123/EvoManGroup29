@@ -43,7 +43,12 @@ n_hidden_neurons = 10
 
 # initializes simulation in individual evolution mode, for single static enemy.
 env = Environment(experiment_name=experiment_name,
+<<<<<<< Updated upstream
                 enemies=[6],
+=======
+                enemies=[1, 4, 7],
+                multiplemode="yes",
+>>>>>>> Stashed changes
                 playermode="ai",
                 player_controller=player_controller(n_hidden_neurons), # you  can insert your own controller here
                 enemymode="static",
@@ -105,6 +110,7 @@ def mutate_gene_gaussian(gene):
     return gene
 
 
+<<<<<<< Updated upstream
 def mutate(individual):
     for i in range(len(individual)):
         if random.random() < mutation_strength:
@@ -115,6 +121,12 @@ def mutate(individual):
 def adaptive_tournament_selection(population, f_values, min_tournament_size=4, max_tournament_size=10):
     num_parents = len(population)
     selected_parents = []  # List to store the selected parents
+=======
+# Tournament that decides which parents should create the new generation
+def adaptive_tournament_selection(population, f_values, min_tournament_size=4, max_tournament_size=8):
+    num_parents = int(len(population)/2)
+    selected_parents = []
+>>>>>>> Stashed changes
 
     # Track the diversity of individuals using an array of zeros
     diversity_scores = np.zeros(num_parents)
