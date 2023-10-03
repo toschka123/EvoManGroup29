@@ -6,10 +6,10 @@ import datetime
 2. Highest fitness value of each generation
 3. Sigma value of average system at start generation
 4. Sigma value of average system at last generation"""
-def save_run(mean_f, best_f, sig_start, sig_end):
+def save_run(mean_f, best_f, sig_start, sig_end, opponent, identifier):
     # giving the file a timestamp
     time = datetime.datetime.now().strftime("%d%H%M")
-    filename = f'evcomprun_{time}.csv'
+    filename = f'evcomprun_{opponent}_{identifier}.csv'
 
     with open(filename, mode='w', newline='') as file:
         f = csv.writer(file)

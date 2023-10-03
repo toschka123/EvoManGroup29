@@ -15,7 +15,9 @@ import random
 # imports other libs
 import numpy as np
 import os
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
+import csv
+import datetime
 
 # runs simulation
 def simulation(env,x):
@@ -26,9 +28,20 @@ def simulation(env,x):
 def evaluate(env, x):
     return np.array(list(map(lambda y: simulation(env,y), x)))
 
+def save_run_no_selfadapt(mean_f, best_f):
+    # giving the file a timestamp
+    time = datetime.datetime.now().strftime("%d%H%M")
+    filename = f'evcomprun_no_self_adapat_{time}.csv'
+
+    with open(filename, mode='w', newline='') as file:
+        f = csv.writer(file)
+        f.writerow(['Mean fitness', 'Best fitness'])
+        for i in range(len(mean_f)):
+            f.writerow([mean_f[i], best_f[i]])
+
 
 # choose this for not using visuals and thus making experiments faster
-headless = False
+headless = True
 if headless:
     os.environ["SDL_VIDEODRIVER"] = "dummy"
 
@@ -64,10 +77,12 @@ N_newGen = pop_size * 4  # define how many offsprings we want to produce and how
 mutation_strength = 0.04
 fitness_survivor_no = 20  # how many children in the new generation will be from "best". The rest are random.
 gaussian_mutation_sd = 0.5
+fitness_avg_history = []
+fitness_best_history = []
 overall_best = -1
 fitness_history = []
 
-run_mode = "test"
+run_mode = "train"
 
 def random_points(n):
     crossover_list = []
@@ -269,14 +284,19 @@ elif run_mode == 'train':
         low_f = min(pop_f)
         print(max_f, avg_f)
 
+
+        fitness_avg_history.append((avg_f))
+
         if max_f > overall_best:
             overall_best = max_f
             best = np.argmax(pop_f)
             best_individual = pop[best]
+        fitness_best_history.append(overall_best)
 
-
-np.savetxt(experiment_name + '/best.txt', best_individual)
 # saves simulation state
+np.savetxt(experiment_name + '/best.txt', best_individual)
+save_run_no_selfadapt(fitness_avg_history, fitness_best_history)
+
 solutions = [pop, pop_f]
 env.update_solutions(solutions)
 env.save_state()
