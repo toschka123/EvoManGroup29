@@ -70,6 +70,9 @@ mutation_threshold = 0.04
 fitness_survivor_no = 20  # how many children in the new generation will be from "best". The rest are random.
 gaussian_mutation_sd = 0.5
 overall_best = -1
+e0 = 0.02               #Formulate the boundary condition for sigma'
+#COMPLETELY RANDOM NR NOW !!
+
 fitness_avg_history = []
 fitness_best_history = []
 fitness_history = []
@@ -117,10 +120,14 @@ def uniform_recombination(i1, i2): #Takes as input two parents and returns 2 bab
         #Decide which baby to mutate and assign it its new sigma
         if randint(0, 1) == 1:
             sigma_prime = baby1[0] * step_size
+            if sigma_prime < e0:
+                sigma_prime = e0
             baby1[0] = sigma_prime
 
         else:
             sigma_prime = baby2[0] * step_size
+            if sigma_prime < e0:
+                sigma_prime = e0
             baby2[0] = sigma_prime
 
     sigma1 = baby1[0]
@@ -138,7 +145,6 @@ def uniform_recombination(i1, i2): #Takes as input two parents and returns 2 bab
             baby1[i] = mutate_gene_sa(baby1[i], sigma1)
         if random.random() > mutation_threshold:
             baby2[i] = mutate_gene_sa(baby1[i], sigma2)
-
 
     return baby1, baby2
 

@@ -25,13 +25,10 @@ def simulation(env,x):
 def evaluate(env, x):
     return np.array(list(map(lambda y: simulation(env,y), x)))
 
-
-
 # choose this for not using visuals and thus making experiments faster
 headless = True
 if headless:
     os.environ["SDL_VIDEODRIVER"] = "dummy"
-
 
 experiment_name = 'optimization_test'
 if not os.path.exists(experiment_name):
@@ -49,11 +46,12 @@ env = Environment(experiment_name=experiment_name,
                 speed="fastest",
                 visuals=False)
 
-
 # number of weights for multilayer with 10 hidden neurons
 n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5
 
 # start writing your own code from here
+
+#Initialize general values
 run_mode = "train"
 pop_size = 100
 max_f =-1
@@ -61,13 +59,18 @@ avg_f =-1
 low_f = 999
 maxGens=20
 Gen=0
-N_newGen=pop_size # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
 mutation_strength = 0.04
 overall_best = -1
 
-pop = np.random.uniform(-1, 1, (pop_size, n_vars)) #initialize population
-pop_f = evaluate(env,pop) #evaluate population
-max_f=max(pop_f)
+#Define the number of offspring to produce and how many of the old generation (this has to be even)
+N_newGen = pop_size
+
+#Initialize population randomly
+pop = np.random.uniform(-1, 1, (pop_size, n_vars))
+
+#Evaluate and map initial population
+pop_f = evaluate(env,pop)
+max_f = max(pop_f)
 avg_f = sum(pop_f)/len(pop_f)
 low_f = min(pop_f)
 print(max_f, avg_f)
