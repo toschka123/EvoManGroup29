@@ -28,6 +28,14 @@ def evaluate(env, x):
     return np.array(list(map(lambda y: simulation(env,y), x)))
 
 
+def evaluate_gain(env, individual):
+    return np.array((map(lambda y: individual_gain(env, y),individual)))
+
+def individual_gain(env, individual):
+    f,p,e,t = env.play(pcont=individual)
+    indiv_gain = int(p)-int(e)
+    return indiv_gain
+
 #Function that returns the population with only the 265 weights, no sigma
 def pop_weights_only(pop):
     weights_only = pop[:,1:]
@@ -47,6 +55,7 @@ n_hidden_neurons = 10
 # initializes simulation in individual evolution mode, for single static enemy.
 env = Environment(experiment_name=experiment_name,
                 enemies=[7],
+                #multiplemode = "yes",
                 playermode="ai",
                 player_controller=player_controller(n_hidden_neurons), # you  can insert your own controller here
                 enemymode="static",
@@ -80,7 +89,13 @@ pop = np.random.uniform(-1, 1, (pop_size, n_vars)) #Initialize population, with 
 #Define the bounds of your initial sigma values and tao for self-adaptive mutation
 sigma_i_U = 0.1
 sigma_i_L = 0.01
+
+#Generate the stepsize (mutation size) of your sigma value
 tao = 0.05
+step_size = math.e ** (tao * np.random.normal(0, 1))
+
+#Decide which baby to mutate
+
 
 #Generate the initial sigma values and place them at location 0 for each individual array
 sigma_vals_i = [random.uniform(sigma_i_U,sigma_i_L) for individual in range(pop_size)]
@@ -109,12 +124,7 @@ def uniform_recombination(i1, i2): #Takes as input two parents and returns 2 bab
         baby1.append(i2[0])
 
     #Then possibly perform mutation on either the sigma of your first or your second baby
-    if random.random() > mutation_threshold:
-
-        #Generate the stepsize (mutation size) of your sigma value
-        step_size = math.e ** (tao * np.random.normal(0, 1))
-
-        #Decide which baby to mutate and assign it its new sigma
+    if random.random() > mutation_threshold: #and assign it its new sigma
         if randint(0, 1) == 1:
             sigma_prime = baby1[0] * step_size
             baby1[0] = sigma_prime
@@ -138,8 +148,6 @@ def uniform_recombination(i1, i2): #Takes as input two parents and returns 2 bab
             baby1[i] = mutate_gene_sa(baby1[i], sigma1)
         if random.random() > mutation_threshold:
             baby2[i] = mutate_gene_sa(baby1[i], sigma2)
-
-
     return baby1, baby2
 
 
@@ -225,7 +233,7 @@ if run_mode =='test':
     sys.exit(0)
 
 elif run_mode == 'train':
-    for RunNumber in range(10):
+    for RunNumber in range(1):
         pop_size = 100
         max_f = -1
         avg_f = -1
@@ -321,7 +329,9 @@ elif run_mode == 'train':
             print(f"Generation {Gen}: Fitness Diversity (Std Dev): {fitness_std}")
 
         avg_sigma_end = sum(pop[:,0])/len(pop[:,0])
-        save_run(fitness_avg_history, fitness_best_history, avg_sigma_start, avg_sigma_end, "waterman", RunNumber)
+        energyGain=individual_gain  (env, pop_without_sigma[best])
+        print(energyGain)
+        save_run(fitness_avg_history, fitness_best_history, avg_sigma_start, avg_sigma_end,energyGain, "heatmen", RunNumber)
         # After the loop, you can visualize the fitness diversity over generations if needed
         #plt.plot(range(maxGens), [np.std(fitness) for fitness in fitness_history])
         #plt.title("Fitness Diversity Over Generations")
