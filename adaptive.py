@@ -295,7 +295,7 @@ elif run_mode == 'train':
         pop_without_sigma = pop_weights_only(pop)
 
         pop_f = evaluate(env,pop_without_sigma) #evaluate new population
->       max_f = max(pop_f)
+        max_f = max(pop_f)
         avg_f = sum(pop_f) / len(pop_f)
         low_f = min(pop_f)
         print(max_f, avg_f)
