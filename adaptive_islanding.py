@@ -54,7 +54,8 @@ n_hidden_neurons = 10
 
 # initializes simulation in individual evolution mode, for single static enemy.
 env = Environment(experiment_name=experiment_name,
-                enemies=[6],
+                enemies=[1, 3, 7],
+                multiplemode="yes",
                 playermode="ai",
                 player_controller=player_controller(n_hidden_neurons), # you  can insert your own controller here
                 enemymode="static",
@@ -68,6 +69,8 @@ n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5 +1
 
 # start writing your own code from here
 island_no = 2 # must be even
+migrating_indivs_no = 5 # how many inidivduals migrate
+migration_multiple = 3 # migration occurs every X gens
 pop_size = int(100 / island_no)
 max_f = -1
 avg_f = -1
@@ -81,13 +84,11 @@ gaussian_mutation_sd = 0.5
 overall_best = -1
 e0 = 0.02               #Formulate the boundary condition for sigma'
 #COMPLETELY RANDOM NR NOW !!
+run_mode = "train"
 
 fitness_avg_history = []
 fitness_best_history = []
 fitness_history = []
-
-#Generate 266 genes, at loc 0 we find the sigma, the rest of the array is the weights
-pop = np.random.uniform(-1, 1, (pop_size, n_vars)) #Initialize population, with extra value for the weights
 
 #Define the bounds of your initial sigma values and tao for self-adaptive mutation
 sigma_i_U = 0.1
@@ -96,22 +97,6 @@ sigma_i_L = 0.01
 #Generate the stepsize (mutation size) of your sigma value
 tao = 0.05
 step_size = math.e ** (tao * np.random.normal(0, 1))
-
-#Decide which baby to mutate
-
-
-#Generate the initial sigma values and place them at location 0 for each individual array
-sigma_vals_i = [random.uniform(sigma_i_U,sigma_i_L) for individual in range(pop_size)]
-pop[:, 0] = sigma_vals_i
-avg_sigma_start = sum(sigma_vals_i)/len(sigma_vals_i)
-
-#Evaluate population
-pop_f = evaluate(env,pop_weights_only(pop))
-max_f = max(pop_f)
-avg_f = sum(pop_f)/len(pop_f)
-low_f = min(pop_f)
-print(max_f, avg_f)
-run_mode = "train"
 
 #Uniform recombination
 def uniform_recombination(i1, i2): #Takes as input two parents and returns 2 babies, in each position 50% chance to have parent1's gene
@@ -229,6 +214,21 @@ def survivor_selector_mu_lambda(children, no_best_picks):
 
     return survivors
 
+
+# Exchanges some number of individuals between two islands
+def migrate(pop_island_1, pop_island_2, no_individuals):
+    indiv_indices = random.sample(range(1, pop_size), no_individuals) #exchange randomly. TODO: exchange most different indivs
+    leaving_isl_1 = pop_island_1[indiv_indices]
+    leaving_ils_2 = pop_island_2[indiv_indices]
+
+    pop_island_1[indiv_indices] = leaving_ils_2
+    pop_island_2[indiv_indices] = leaving_isl_1
+
+    print('migrated')
+
+    return pop_island_1, pop_island_2
+
+
 if run_mode =='test':
 
     bsol = np.loadtxt(experiment_name+'/best.txt')
@@ -255,13 +255,30 @@ elif run_mode == 'train':
     pop_isl1 = np.random.uniform(-0.5, 1, (pop_size, n_vars)) #Initialize population, with extra value for the weights
     pop_isl2 = np.random.uniform(-1, 0.5, (pop_size, n_vars)) #Initialize population, with extra value for the weights
 
+    #Generate the initial sigma values and place them at location 0 for each individual array
+    sigma_vals_i = [random.uniform(sigma_i_U,sigma_i_L) for individual in range(pop_size)]
+    pop_isl1[:, 0] = sigma_vals_i
+    pop_isl2[:, 0] = sigma_vals_i
+
+    #Evaluate populations : initialization
+    pop_f_isl1 = evaluate(env,pop_weights_only(pop_isl1))
+    max_f_isl1 = max(pop_f_isl1)
+    avg_f_isl1 = sum(pop_f_isl1) / len(pop_f_isl1)
+
+    pop_f_isl2 = evaluate(env,pop_weights_only(pop_isl2))
+    max_f_isl2 = max(pop_f_isl2)
+    avg_f_isl2 = sum(pop_f_isl2) / len(pop_f_isl2)
+    print(f'INIT: island 1: {max_f_isl1:.2f}, {avg_f_isl1:.2f}, island 2: {max_f_isl2:.2f}, {avg_f_isl2:.2f}\n')
+    
+
     step_size = math.e ** (tao * np.random.normal(0, 1))
     Gen = 0
     
     while Gen < maxGens:
+        print(f'Generation: {Gen}')
         #Parent selection island 1
         parents_isl1=[]
-        parents_isl1 = adaptive_tournament_selection(pop, pop_f, 4) #generates 100 parents - parent selection seems to make the convergion faster
+        parents_isl1 = adaptive_tournament_selection(pop_isl1, pop_f_isl1, 4) #generates 100 parents - parent selection seems to make the convergion faster
         new_kids_isl1 = np.random.uniform(-1, 1, (N_newGen, n_vars)) #preallocate 600 kids
 
         #Recombination island 1
@@ -272,7 +289,7 @@ elif run_mode == 'train':
 
          #Parent selection island 2
         parents_isl2=[]
-        parents_isl2 = adaptive_tournament_selection(pop, pop_f, 4) #generates 100 parents - parent selection seems to make the convergion faster
+        parents_isl2 = adaptive_tournament_selection(pop_isl2, pop_f_isl2, 4) #generates 100 parents - parent selection seems to make the convergion faster
         new_kids_isl2 = np.random.uniform(-1, 1, (N_newGen, n_vars)) #preallocate 600 kids
 
         #Recombination island 2
@@ -291,10 +308,15 @@ elif run_mode == 'train':
         for i in range(pop_size):
             pop_isl2[i] = survivors_isl2[i]
 
+        #Migration every X gens
+        if (Gen % migration_multiple == 0) and (Gen != 0):
+            migrate(pop_isl1, pop_isl2, migrating_indivs_no)
+
         Gen+=1
 
         pop_without_sigma_isl1 = pop_weights_only(pop_isl1)
         pop_without_sigma_isl2 = pop_weights_only(pop_isl2)
+
 
         pop_f_isl1 = evaluate(env,pop_without_sigma_isl1) #evaluate new population island 1
         pop_f_isl2 = evaluate(env,pop_without_sigma_isl2) #evaluate new population island 2
@@ -302,14 +324,12 @@ elif run_mode == 'train':
         max_f_isl2 = max(pop_f_isl2)
         avg_f_isl1 = sum(pop_f_isl1) / len(pop_f_isl1)
         avg_f_isl2 = sum(pop_f_isl2) / len(pop_f_isl2)
-        print(f'island 1: {max_f_isl1}, {avg_f_isl1}, island 2:{max_f_isl2}, {avg_f_isl2}')
+        print(f'island 1: {max_f_isl1:.2f}, {avg_f_isl1:.2f}, island 2: {max_f_isl2:.2f}, {avg_f_isl2:.2f}\n')
 
-
-        
 
         if max_f_isl1 > overall_best:
             overall_best = max_f_isl1
-            best = np.argmax(pop_f)
+            best = np.argmax(pop_f_isl1)
             best_individual = pop_without_sigma_isl1[best]
             overall_best = max_f_isl1
             np.savetxt(experiment_name + '/best.txt', pop_without_sigma_isl1[best])
