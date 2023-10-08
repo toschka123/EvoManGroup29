@@ -54,7 +54,7 @@ n_hidden_neurons = 10
 
 # initializes simulation in individual evolution mode, for single static enemy.
 env = Environment(experiment_name=experiment_name,
-                enemies=[1, 3, 7],
+                enemies=[1, 2, 3, 6, 7],
                 multiplemode="yes",
                 playermode="ai",
                 player_controller=player_controller(n_hidden_neurons), # you  can insert your own controller here
@@ -69,7 +69,7 @@ n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5 +1
 
 # start writing your own code from here
 island_no = 2 # must be even
-migrating_indivs_no = 10 # how many inidivduals migrate
+migrating_indivs_no = 5 # how many inidivduals migrate
 migration_multiple = 3 # migration occurs every X gens
 pop_size = int(100 / island_no)
 max_f = -1
@@ -78,7 +78,7 @@ low_f = 999
 maxGens = 20
 Gen = 0
 N_newGen = pop_size * 4  # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
-mutation_threshold = 0.04
+mutation_threshold = 0.1
 fitness_survivor_no = int(40 /island_no)  # how many children in the new generation will be from "best". The rest are random.
 gaussian_mutation_sd = 0.5
 overall_best = -1
@@ -98,10 +98,24 @@ sigma_i_L = 0.01
 tao = 0.05
 step_size = math.e ** (tao * np.random.normal(0, 1))
 
-crossover_threshold = 12 
+crossover_threshold = 5 
 
 #Uniform recombination
 def uniform_recombination(i1, i2): #Takes as input two parents and returns 2 babies, in each position 50% chance to have parent1's gene
+    """
+    Perform uniform recombination between two parents.
+
+    Args:
+    - i1 (list): The genetic representation of the first parent.
+    - i2 (list): The genetic representation of the second parent.
+    - mutation_threshold (float): Probability threshold for performing mutation.
+    - step_size (float): Mutation step size for sigma adjustment.
+    - e0 (float): Minimum value for the mutated sigma.
+
+    Returns:
+    - baby1 (list): The genetic representation of the first offspring.
+    - baby2 (list): The genetic representation of the second offspring.
+    """
     baby1=[]
     baby2=[]
 
@@ -164,6 +178,20 @@ def mutate_gene_gaussian(gene):
     return gene
 
 def multipoint_crossover(parent1, parent2, mutation_threshold, tao, e0):
+    """
+    Perform multipoint crossover between two parents.
+
+    Args:
+    - parent1 (list): The first parent's genetic representation.
+    - parent2 (list): The second parent's genetic representation.
+    - mutation_threshold (float): Probability threshold for performing mutation.
+    - tao (float): Mutation parameter for step size adjustment.
+    - e0 (float): Minimum value for the mutated sigma.
+
+    Returns:
+    - baby1 (list): The genetic representation of the first offspring.
+    - baby2 (list): The genetic representation of the second offspring.
+    """
     # Check if parents have the same length
     assert len(parent1) == len(parent2), "Parents must have the same length."
 
@@ -225,6 +253,18 @@ def multipoint_crossover(parent1, parent2, mutation_threshold, tao, e0):
     return baby1, baby2
 
 def adaptive_tournament_selection(population, f_values, min_tournament_size=2, max_tournament_size=5):
+    """
+    Perform adaptive tournament selection to choose parents from a population.
+
+    Args:
+    - population (list): List of individuals in the population.
+    - f_values (list): List of fitness values corresponding to the individuals in the population.
+    - min_tournament_size (int): Minimum number of individuals in each tournament.
+    - max_tournament_size (int): Maximum number of individuals in each tournament.
+
+    Returns:
+    - selected_parents (list): List of selected parents from the population.
+    """
     num_parents = int(len(population)/2)
     selected_parents = []  # List to store the selected parents
 
@@ -269,19 +309,6 @@ def survivor_selector_mu_lambda(children, no_best_picks):
         survivors[i] = children[random.randint(0, pop_size-1)]
 
     return survivors
-
-# Exchanges some number of individuals between two islands
-# def migrate(pop_island_1, pop_island_2, no_individuals):
-#     indiv_indices = random.sample(range(1, pop_size), no_individuals) #exchange randomly. TODO: exchange most different indivs
-#     leaving_isl_1 = pop_island_1[indiv_indices]
-#     leaving_ils_2 = pop_island_2[indiv_indices]
-
-#     pop_island_1[indiv_indices] = leaving_ils_2
-#     pop_island_2[indiv_indices] = leaving_isl_1
-
-#     print('migrated')
-
-#     return pop_island_1, pop_island_2
 
 def calculate_diversity_scores(population):
     """
@@ -495,7 +522,8 @@ elif run_mode == 'train':
     energyGain=individual_gain  (env, best_individual)
     
     #print(energyGain)
-    save_run(fitness_avg_history, fitness_best_history, 0,energyGain, run_number)
+    # save_run(fitness_avg_history, fitness_best_history, energyGain, 'heatman', run_number)
+
     #save_run(fitness_avg_history, fitness_best_history, avg_sigma_start, avg_sigma_end)
     # After the loop, you can visualize the fitness diversity over generations if needed
     """plt.plot(range(maxGens), [np.std(fitness) for fitness in fitness_history])

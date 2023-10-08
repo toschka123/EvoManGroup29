@@ -74,15 +74,15 @@ low_f = 999
 maxGens = 10
 Gen = 0
 N_newGen = pop_size * 4  # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
-mutation_threshold = 0.2
+mutation_threshold = 0.3
 fitness_survivor_no = 20  # how many children in the new generation will be from "best". The rest are random.
 gaussian_mutation_sd = 0.5
 overall_best = -1
 e0 = 0.02               #Formulate the boundary condition for sigma'
 
 # Define crossover probabilities
-multipoint_crossover_prob = 0.7  # Probability of using multipoint crossover
-uniform_crossover_prob = 0.3    # Probability of using uniform crossover
+multipoint_crossover_prob = 0.8 # Probability of using multipoint crossover
+uniform_crossover_prob = 0.3   # Probability of using uniform crossover
 
 
 #COMPLETELY RANDOM NR NOW !!
@@ -288,7 +288,7 @@ if run_mode =='test':
     sys.exit(0)
 
 elif run_mode == 'train':
-    for run_number in range(10): #define how many times to run the experiment
+    for run_number in range(1): #define how many times to run the experiment
         #Reinitialize parameters for each of the test runs
         max_f = -1
         avg_f = -1
@@ -369,11 +369,11 @@ elif run_mode == 'train':
 
         avg_sigma_end = sum(pop[:,1])/len(pop[:,1])
         energyGain=individual_gain  (env, pop_without_sigma[best])
-        save_run(fitness_avg_history, fitness_best_history, avg_sigma_start, avg_sigma_end,energyGain, run_number)
+        save_run(fitness_avg_history, fitness_best_history, avg_sigma_start, avg_sigma_end,energyGain, 'waterman', run_number)
         #save_run(fitness_avg_history, fitness_best_history, avg_sigma_start, avg_sigma_end)
         # After the loop, you can visualize the fitness diversity over generations if needed
-        """plt.plot(range(maxGens), [np.std(fitness) for fitness in fitness_history])
+        plt.plot(range(maxGens), [np.std(fitness) for fitness in fitness_history])
         plt.title("Fitness Diversity Over Generations")
         plt.xlabel("Generation")
         plt.ylabel("Standard Deviation of Fitness")
-        plt.show()"""
+        plt.show()
