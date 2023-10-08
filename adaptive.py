@@ -27,6 +27,13 @@ def simulation(env,x):
 def evaluate(env, x):
     return np.array(list(map(lambda y: simulation(env,y), x)))
 
+def evaluate_gain(env, individual):
+    return np.array((map(lambda y: individual_gain(env, y),individual)))
+
+def individual_gain(env, individual):
+    f,p,e,t = env.play(pcont=individual)
+    indiv_gain = int(p)-int(e)
+    return indiv_gain
 
 #Function that returns the population with only the 265 weights, no sigma
 def pop_weights_only(pop):
@@ -64,7 +71,7 @@ pop_size = 100
 max_f = -1
 avg_f = -1
 low_f = 999
-maxGens = 20
+maxGens = 10
 Gen = 0
 N_newGen = pop_size * 4  # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
 mutation_threshold = 0.2
@@ -280,71 +287,93 @@ if run_mode =='test':
 
     sys.exit(0)
 
-
-
 elif run_mode == 'train':
-    while Gen < maxGens:
-        parents = adaptive_tournament_selection(pop, pop_f, 4)  # Generates parents using adaptive tournament selection
-        new_kids = np.random.uniform(-1, 1, (N_newGen, n_vars))  # Preallocate offspring
+    for run_number in range(10): #define how many times to run the experiment
+        #Reinitialize parameters for each of the test runs
+        max_f = -1
+        avg_f = -1
+        low_f = 999
 
-        for i in range(0, N_newGen, 2):
-            # Generate a random number between 0 and 1
-            random_number = random.random()
+        overall_best = -1
+        fitness_avg_history = []
+        fitness_best_history = []
+        fitness_history = []
 
-            if random_number <= multipoint_crossover_prob:
-                # Use multipoint crossover for this pair of parents
-                baby1, baby2 = multipoint_crossover(parents[i], parents[i + 1], mutation_threshold, tao, e0)
-                crossover_used = 'Multipoint Crossover'
-            else:
-                # Use uniform crossover for this pair of parents
-                baby1, baby2 = uniform_recombination(parents[i], parents[i + 1])
-                crossover_used = 'Uniform Crossover'
-        
-            new_kids[i] = baby1
-            new_kids[i + 1] = baby2
+        #Generate 266 genes, at loc 0 we find the sigma, the rest of the array is the weights
+        pop = np.random.uniform(-1, 1, (pop_size, n_vars)) #Initialize population, with extra value for the weights
 
-        # Rest of the code remains the same
-        survivors = survivor_selector_mu_lambda(new_kids, fitness_survivor_no)
-        for i in range(pop_size):
-            pop[i] = survivors[i]
+        #Define the bounds of your initial sigma values and tao for self-adaptive mutation
+        sigma_i_U = 0.1
+        sigma_i_L = 0.01
 
-        Gen += 1
+        #Generate the stepsize (mutation size) of your sigma value
+        tao = 0.05
+        step_size = math.e ** (tao * np.random.normal(0, 1))
+        Gen = 0
+    
+        while Gen < maxGens:
+            parents = adaptive_tournament_selection(pop, pop_f, 4)  # Generates parents using adaptive tournament selection
+            new_kids = np.random.uniform(-1, 1, (N_newGen, n_vars))  # Preallocate offspring
 
-        pop_without_sigma = pop_weights_only(pop)
+            for i in range(0, N_newGen, 2):
+                # Generate a random number between 0 and 1
+                random_number = random.random()
 
-        pop_f = evaluate(env, pop_without_sigma)  # Evaluate new population
-        max_f = max(pop_f)
-        avg_f = sum(pop_f) / len(pop_f)
-        low_f = min(pop_f)
-        print(max_f, avg_f)
+                if random_number <= multipoint_crossover_prob:
+                    # Use multipoint crossover for this pair of parents
+                    baby1, baby2 = multipoint_crossover(parents[i], parents[i + 1], mutation_threshold, tao, e0)
+                    crossover_used = 'Multipoint Crossover'
+                else:
+                    # Use uniform crossover for this pair of parents
+                    baby1, baby2 = uniform_recombination(parents[i], parents[i + 1])
+                    crossover_used = 'Uniform Crossover'
+            
+                new_kids[i] = baby1
+                new_kids[i + 1] = baby2
 
-        fitness_avg_history.append(avg_f)
-        fitness_best_history.append(max_f)
+            # Rest of the code remains the same
+            survivors = survivor_selector_mu_lambda(new_kids, fitness_survivor_no)
+            for i in range(pop_size):
+                pop[i] = survivors[i]
 
-        if max_f > overall_best:
-            overall_best = max_f
-            best = np.argmax(pop_f)
-            best_individual = pop_without_sigma[best]
-            overall_best = max_f
+            Gen += 1
 
-            np.savetxt(experiment_name + '/best.txt', pop_without_sigma[best])
+            pop_without_sigma = pop_weights_only(pop)
 
-        # Store fitness history for each generation
-        fitness_values = evaluate(env, pop_without_sigma)
-        fitness_history.append(fitness_values)
+            pop_f = evaluate(env, pop_without_sigma)  # Evaluate new population
+            max_f = max(pop_f)
+            avg_f = sum(pop_f) / len(pop_f)
+            low_f = min(pop_f)
+            print(max_f, avg_f)
 
-        # Calculate the standard deviation of fitness values
-        fitness_std = np.std(fitness_values)
+            fitness_avg_history.append(avg_f)
+            fitness_best_history.append(max_f)
 
-        # Print or log the fitness diversity metric for the current generation
-        print(f"Generation {Gen}: Fitness Diversity (Std Dev): {fitness_std}, {crossover_used}")
+            if max_f > overall_best:
+                overall_best = max_f
+                best = np.argmax(pop_f)
+                best_individual = pop_without_sigma[best]
+                overall_best = max_f
 
-    avg_sigma_end = sum(pop[:, 1]) / len(pop[:, 1])
-    # save_run(fitness_avg_history, fitness_best_history, avg_sigma_start, avg_sigma_end)
+                np.savetxt(experiment_name + '/best.txt', pop_without_sigma[best])
 
-    # After the loop, you can visualize the fitness diversity over generations if needed
-    plt.plot(range(maxGens), [np.std(fitness) for fitness in fitness_history])
-    plt.title("Fitness Diversity Over Generations")
-    plt.xlabel("Generation")
-    plt.ylabel("Standard Deviation of Fitness")
-    plt.show()
+            # Store fitness history for each generation
+            fitness_values = evaluate(env, pop_without_sigma)
+            fitness_history.append(fitness_values)
+
+            # Calculate the standard deviation of fitness values
+            fitness_std = np.std(fitness_values)
+
+            # Print or log the fitness diversity metric for the current generation
+            print(f"Generation {Gen}: Fitness Diversity (Std Dev): {fitness_std}, {crossover_used}")
+
+        avg_sigma_end = sum(pop[:,1])/len(pop[:,1])
+        energyGain=individual_gain  (env, pop_without_sigma[best])
+        save_run(fitness_avg_history, fitness_best_history, avg_sigma_start, avg_sigma_end,energyGain, run_number)
+        #save_run(fitness_avg_history, fitness_best_history, avg_sigma_start, avg_sigma_end)
+        # After the loop, you can visualize the fitness diversity over generations if needed
+        """plt.plot(range(maxGens), [np.std(fitness) for fitness in fitness_history])
+        plt.title("Fitness Diversity Over Generations")
+        plt.xlabel("Generation")
+        plt.ylabel("Standard Deviation of Fitness")
+        plt.show()"""
