@@ -1,4 +1,3 @@
-
 ###############################################################################
 # EvoMan FrameWork - V1.0 2016  			                                  #
 # DEMO : Neuroevolution - Genetic Algorithm  neural network.                  #
@@ -8,10 +7,11 @@
 
 # imports framework
 import sys
-
+import math
 from evoman.environment import Environment
 from demo_controller import player_controller
 from random import randint, random
+from save_run import save_run
 import random
 # imports other libs
 import numpy as np
@@ -28,12 +28,15 @@ def evaluate(env, x):
     return np.array(list(map(lambda y: simulation(env,y), x)))
 
 
+#Function that returns the population with only the 265 weights, no sigma
+def pop_weights_only(pop):
+    weights_only = pop[:,1:]
+    return weights_only
 
 # choose this for not using visuals and thus making experiments faster
 headless = True
 if headless:
     os.environ["SDL_VIDEODRIVER"] = "dummy"
-
 
 experiment_name = 'optimization_test'
 if not os.path.exists(experiment_name):
@@ -43,16 +46,8 @@ n_hidden_neurons = 10
 
 # initializes simulation in individual evolution mode, for single static enemy.
 env = Environment(experiment_name=experiment_name,
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                enemies=[6],
-=======
-                enemies=[1, 4, 7],
+                enemies=[6, 2, 1],
                 multiplemode="yes",
->>>>>>> Stashed changes
-=======
-                enemies=[5],
->>>>>>> Stashed changes
                 playermode="ai",
                 player_controller=player_controller(n_hidden_neurons), # you  can insert your own controller here
                 enemymode="static",
@@ -61,35 +56,28 @@ env = Environment(experiment_name=experiment_name,
                 visuals=False)
 
 
-# number of weights for multilayer with 10 hidden neurons
-n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5
+# number of variables for multilayer with 10 hidden neurons (265) plus one sigma value
+n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5 +1
 
 # start writing your own code from here
-
 pop_size = 100
-max_f =1
-avg_f =-1
+max_f = -1
+avg_f = -1
 low_f = 999
-<<<<<<< Updated upstream
-maxGens=30
-Gen=0
-N_newGen=pop_size # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
-fitness_survivor_no = 20 
-mutation_strength = 0.1
-gaussian_mutation_sd = 0.5 
-
-pop = np.random.uniform(-1, 1, (pop_size, n_vars)) #initialize population
-pop_f = evaluate(env,pop) #evaluate population
-max_f=max(pop_f)
-=======
 maxGens = 20
 Gen = 0
 N_newGen = pop_size * 4  # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
-mutation_threshold = 0.1
+mutation_threshold = 0.2
 fitness_survivor_no = 20  # how many children in the new generation will be from "best". The rest are random.
 gaussian_mutation_sd = 0.5
 overall_best = -1
 e0 = 0.02               #Formulate the boundary condition for sigma'
+
+# Define crossover probabilities
+multipoint_crossover_prob = 0.7  # Probability of using multipoint crossover
+uniform_crossover_prob = 0.3    # Probability of using uniform crossover
+
+
 #COMPLETELY RANDOM NR NOW !!
 
 fitness_avg_history = []
@@ -102,13 +90,7 @@ pop = np.random.uniform(-1, 1, (pop_size, n_vars)) #Initialize population, with 
 #Define the bounds of your initial sigma values and tao for self-adaptive mutation
 sigma_i_U = 0.1
 sigma_i_L = 0.01
-
-#Generate the stepsize (mutation size) of your sigma value
-tao = 0.2
-step_size = math.e ** (tao * np.random.normal(0, 1))
-
-#Decide which baby to mutate
-
+tao = 0.1
 
 #Generate the initial sigma values and place them at location 0 for each individual array
 sigma_vals_i = [random.uniform(sigma_i_U,sigma_i_L) for individual in range(pop_size)]
@@ -118,16 +100,47 @@ avg_sigma_start = sum(sigma_vals_i)/len(sigma_vals_i)
 #Evaluate population
 pop_f = evaluate(env,pop_weights_only(pop))
 max_f = max(pop_f)
->>>>>>> Stashed changes
 avg_f = sum(pop_f)/len(pop_f)
 low_f = min(pop_f)
 print(max_f, avg_f)
+run_mode = "train"
 
-def recombination(i1, i2): #Takes as input two parents and returns 2 babies, in each position 50% chance to have parent1's gene
+# #Uniform recombination
+def uniform_recombination(i1, i2): #Takes as input two parents and returns 2 babies, in each position 50% chance to have parent1's gene
     baby1=[]
     baby2=[]
-    for i in range(len(i1)):
 
+    #Start with choosing which sigma to inherit
+    if randint(0, 1) == 1:
+        baby1.append(i1[0])
+        baby2.append(i2[0])
+    else:
+        baby2.append(i1[0])
+        baby1.append(i2[0])
+
+    #Then possibly perform mutation on either the sigma of your first or your second baby
+    if random.random() > mutation_threshold:
+
+        #Generate the stepsize (mutation size) of your sigma value
+        step_size = math.e ** (tao * np.random.normal(0, 1))
+
+        #Decide which baby to mutate and assign it its new sigma
+        if randint(0, 1) == 1:
+            sigma_prime = baby1[0] * step_size
+            if sigma_prime < e0:
+                sigma_prime = e0
+            baby1[0] = sigma_prime
+
+        else:
+            sigma_prime = baby2[0] * step_size
+            if sigma_prime < e0:
+                sigma_prime = e0
+            baby2[0] = sigma_prime
+
+    sigma1 = baby1[0]
+    sigma2 = baby2[0]
+
+    for i in range(1,len(i1)):
         if randint(0,1) == 1:
             baby1.append(i1[i])
             baby2.append(i2[i])
@@ -135,184 +148,203 @@ def recombination(i1, i2): #Takes as input two parents and returns 2 babies, in 
             baby1.append(i2[i])
             baby2.append(i1[i])
 
-        if random.random() > mutation_strength:
-            baby1[i] = mutate_gene_gaussian(baby1[i])
+        if random.random() > mutation_threshold:
+            baby1[i] = mutate_gene_sa(baby1[i], sigma1)
+        if random.random() > mutation_threshold:
+            baby2[i] = mutate_gene_sa(baby1[i], sigma2)
 
     return baby1, baby2
 
-def mutate_gene_gaussian(gene):
-    mutation = np.random.normal(0, 0.5)
-
-    if mutation + gene > 1: #if values too big
-        return 0.99
-    elif mutation < -1: #if values too small
-        return -0.99
-
+def mutate_gene_sa(gene, s):
+    #Only perform mutation when result stays within weight range (-1,1)
+    mutation = s * np.random.normal(0,1)
+    while abs(gene + mutation) > 1:
+        mutation = s * np.random.normal(0,1)
     gene += mutation
-
     return gene
 
+def multipoint_crossover(parent1, parent2, mutation_threshold, tao, e0):
+    # Check if parents have the same length
+    assert len(parent1) == len(parent2), "Parents must have the same length."
 
-<<<<<<< Updated upstream
-def mutate(individual):
-    for i in range(len(individual)):
-        if random.random() < mutation_strength:
-            individual[i] += random.uniform(-1, 1)  # You can adjust the mutation range
-    return individual
+    # Determine the number of crossover points randomly
+    num_points = random.randint(1, len(parent1) - 1)
+    
+    # Generate sorted random crossover points
+    crossover_points = sorted(random.sample(range(1, len(parent1)), num_points))
 
+    # Initialize offspring containers
+    baby1 = []
+    baby2 = []
 
-def adaptive_tournament_selection(population, f_values, min_tournament_size=4, max_tournament_size=10):
-    num_parents = len(population)
-    selected_parents = []  # List to store the selected parents
-=======
-# Tournament that decides which parents should create the new generation
-def adaptive_tournament_selection(population, f_values, min_tournament_size=4, max_tournament_size=8):
-    num_parents = int(len(population)/2)
-    selected_parents = []
->>>>>>> Stashed changes
+    # Iterate over crossover points to perform gene exchange
+    for i in range(len(crossover_points) + 1):
+        # Determine the start and end indices for gene exchange
+        start = 0 if i == 0 else crossover_points[i - 1]
+        end = len(parent1) if i == len(crossover_points) else crossover_points[i]
 
-    # Loop over the number of parents to select
-    for _ in range(num_parents):
-        # Randomly select individuals for the tournament (without replacement)
-        tournament_indices = np.random.choice(num_parents, size=current_tournament_size, replace=False)
+        # Alternate between parents to create offspring
+        if i % 2 == 0:
+            baby1.extend(parent1[start:end])
+            baby2.extend(parent2[start:end])
+        else:
+            baby1.extend(parent2[start:end])
+            baby2.extend(parent1[start:end])
+
+    # Perform mutation on sigma values of baby1
+    if random.random() > mutation_threshold:
+        # Generate a random step size for mutation
+        step_size = math.e ** (tao * random.normalvariate(0, 1))
         
+        # Calculate the mutated sigma value
+        sigma_prime1 = baby1[0] * step_size
+        
+        # Ensure the mutated sigma value does not go below e0
+        if sigma_prime1 < e0:
+            sigma_prime1 = e0
+        
+        # Update baby1's sigma value
+        baby1[0] = sigma_prime1
+
+    # Perform mutation on sigma values of baby2
+    if random.random() > mutation_threshold:
+        # Generate a random step size for mutation
+        step_size = math.e ** (tao * random.normalvariate(0, 1))
+        
+        # Calculate the mutated sigma value
+        sigma_prime2 = baby2[0] * step_size
+        
+        # Ensure the mutated sigma value does not go below e0
+        if sigma_prime2 < e0:
+            sigma_prime2 = e0
+        
+        # Update baby2's sigma value
+        baby2[0] = sigma_prime2
+
+    # Return the resulting offspring, baby1 and baby2
+    return baby1, baby2
+
+def adaptive_tournament_selection(population, f_values, min_tournament_size=2, max_tournament_size=5):
+    num_parents = int(len(population)/2)
+    selected_parents = []  # List to store the selected parents
+    # Loop over the number of parents to select
+    for _ in range(int(N_newGen)):
+        # Randomly select individuals for the tournament (without replacement)
+        tournament_indices = np.random.choice(num_parents, size=min_tournament_size, replace=False)
         # Calculate the fitness values of the selected individuals
         tournament_fitness = [f_values[i] for i in tournament_indices]
-
-        # Calculate the diversity score for each selected individual
-    for index in tournament_indices:
-        # Calculate the absolute differences between the fitness of the selected individual
-        # and the fitness of other individuals in the tournament, then take the mean.
-        diversity_scores[index] += np.mean(np.abs(tournament_fitness - f_values[index]))
+        best_index1 = tournament_indices[np.argmax(tournament_fitness)]
 
         # Choose the best individual from the tournament as the parent
-        best_index = tournament_indices[np.argmax(tournament_fitness)]
+        tournament_indices = np.random.choice(num_parents, size=max_tournament_size, replace=False)
+        # Calculate the fitness values of the selected individuals
+        tournament_fitness = [f_values[i] for i in tournament_indices]
+        best_index2 = tournament_indices[np.argmax(tournament_fitness)]
 
         # Append the best individual to the list of selected parents
-        selected_parents.append(population[best_index])
+        selected_parents.append(population[best_index1])
+        selected_parents.append(population[best_index2])
 
-        # Update tournament size for the next selection (adaptive)
-        if current_tournament_size < max_tournament_size:
-            current_tournament_size += tournament_size_increment
-
+    #print(len(selected_parents))
     return selected_parents  # Return the list of selected parents
 
 
-def assign_age(population):
-    # Assign random ages to individuals in the population
-    ages = [random.randint(0, 10) for _ in range(len(population))]
-    return ages
+# Returns a survivor array containing surviving children (only!).
+# Some (small) number of surviving children are picked based on fitness.
+# The rest are picked randomly.
+def survivor_selector_mu_lambda(children, no_best_picks):
+    survivors = np.random.uniform(-1, 1, (pop_size, n_vars)) #preallocate a random array for survivors
 
-def age_based_survivor_selection(population, fitness_values, pop_size, max_age=10, tournament_size=6):
-    num_individuals = len(population)
-    selected_survivors = []
+    children_without_sigma = pop_weights_only(children)
 
-    # Combine population, fitness values, and ages for sorting
-    combined_data = list(zip(population, fitness_values, assign_age(population)))
+    children_fitness = evaluate(env, children_without_sigma)
 
-    # Sort by fitness values in descending order
-    combined_data.sort(key=lambda x: x[1], reverse=True)
+    indices_best_children = np.argpartition(children_fitness, -no_best_picks)[-no_best_picks:]
 
-    # Extract the sorted population, fitness values, and ages
-    sorted_population, sorted_fitness_values, sorted_ages = zip(*combined_data)
+    for i in range(no_best_picks): #add some number of best children to the new population
+        survivors[i] = children[indices_best_children[i]]
+    
+    for i in range(no_best_picks, pop_size): #fill the rest of the population with random children
+        survivors[i] = children[random.randint(0, pop_size-1)]
 
-    # Perform tournament selection for the remaining individuals
-    num_tournament_rounds = pop_size
-    for _ in range(num_tournament_rounds):
-        # Randomly select individuals for the tournament
-        tournament_indices = random.sample(range(num_individuals), tournament_size)
+    return survivors
 
-        # Find the best individual in the tournament based on fitness
-        best_individual = max(tournament_indices, key=lambda x: sorted_fitness_values[x])
 
-        # Get the age of the best individual
-        best_individual_age = sorted_ages[best_individual]
+if run_mode =='test':
 
-        # Increment the age of the selected individual
-        selected_individual_age = best_individual_age + 1
+    bsol = np.loadtxt(experiment_name+'/best.txt')
+    print( '\n RUNNING SAVED BEST SOLUTION \n')
+    env.update_parameter('speed','normal')
+    env.update_parameter('visuals', True)
+    evaluate(env, [bsol])
 
-<<<<<<< Updated upstream
-        # If the selected individual's age exceeds the maximum age, replace it
-        if selected_individual_age <= max_age:
-            selected_survivors.append(sorted_population[best_individual])
-=======
+    sys.exit(0)
+
+
+
 elif run_mode == 'train':
-  for run_number in range(1): #define how many times to run the experiment
-    #Reinitialize parameters for each of the test runs
-    max_f = -1
-    avg_f = -1
-    low_f = 999
->>>>>>> Stashed changes
+    while Gen < maxGens:
+        parents = adaptive_tournament_selection(pop, pop_f, 4)  # Generates parents using adaptive tournament selection
+        new_kids = np.random.uniform(-1, 1, (N_newGen, n_vars))  # Preallocate offspring
 
-    # Combine selected survivors to form the final population
-    final_population = list(selected_survivors)
+        for i in range(0, N_newGen, 2):
+            # Generate a random number between 0 and 1
+            random_number = random.random()
 
-    return final_population
+            if random_number <= multipoint_crossover_prob:
+                # Use multipoint crossover for this pair of parents
+                baby1, baby2 = multipoint_crossover(parents[i], parents[i + 1], mutation_threshold, tao, e0)
+                crossover_used = 'Multipoint Crossover'
+            else:
+                # Use uniform crossover for this pair of parents
+                baby1, baby2 = uniform_recombination(parents[i], parents[i + 1])
+                crossover_used = 'Uniform Crossover'
+        
+            new_kids[i] = baby1
+            new_kids[i + 1] = baby2
 
-def mutate(individual):
-    mutation_strength = 0.1  # You can adjust this value based on your problem
+        # Rest of the code remains the same
+        survivors = survivor_selector_mu_lambda(new_kids, fitness_survivor_no)
+        for i in range(pop_size):
+            pop[i] = survivors[i]
 
-    for i in range(len(individual)):
-        if random.random() < mutation_strength:
-            individual[i] += random.uniform(-1, 1)  # You can adjust the mutation range
+        Gen += 1
 
-    return individual
+        pop_without_sigma = pop_weights_only(pop)
 
-max_age = 15  # Maximum age for individuals
+        pop_f = evaluate(env, pop_without_sigma)  # Evaluate new population
+        max_f = max(pop_f)
+        avg_f = sum(pop_f) / len(pop_f)
+        low_f = min(pop_f)
+        print(max_f, avg_f)
 
-# Initialize ages for the initial population
-ages = assign_age(pop)
+        fitness_avg_history.append(avg_f)
+        fitness_best_history.append(max_f)
 
-# Store fitness history for each generation
-fitness_history = []
+        if max_f > overall_best:
+            overall_best = max_f
+            best = np.argmax(pop_f)
+            best_individual = pop_without_sigma[best]
+            overall_best = max_f
 
-while Gen < maxGens:
-    parents = []
-    for i in range(int(N_newGen/2)):
-        parents.append(adaptive_tournament_selection(pop, pop_f, 6, N_newGen))
+            np.savetxt(experiment_name + '/best.txt', pop_without_sigma[best])
 
-    new_kids = []
-    for pairs in parents:
-        baby1, baby2 = recombination(pairs[0], pairs[1])
-        new_kids.append(baby1)
-        new_kids.append(baby2)
+        # Store fitness history for each generation
+        fitness_values = evaluate(env, pop_without_sigma)
+        fitness_history.append(fitness_values)
 
-    # Update ages for the current population
-    ages = [min(age + 1, max_age) for age in ages]
+        # Calculate the standard deviation of fitness values
+        fitness_std = np.std(fitness_values)
 
-    # Combine old and new generations
-    old_generation = pop.tolist()
-    total = old_generation + new_kids
-    total = np.array(total)
-    total_f = evaluate(env, total)
+        # Print or log the fitness diversity metric for the current generation
+        print(f"Generation {Gen}: Fitness Diversity (Std Dev): {fitness_std}, {crossover_used}")
 
-    # Select survivors using age-based survivor selection
-    survivors = age_based_survivor_selection(total, total_f, pop_size, max_age, tournament_size=6)
-    # Update the population with survivors and their ages
-    for i in range(len(survivors)):
-        pop[i] = survivors[i]
-        ages[i] = 0  # Reset the age of survivors
+    avg_sigma_end = sum(pop[:, 1]) / len(pop[:, 1])
+    # save_run(fitness_avg_history, fitness_best_history, avg_sigma_start, avg_sigma_end)
 
-    Gen += 1
-    pop_f = evaluate(env, pop)  # Evaluate the new population
-    max_f = max(pop_f)
-    avg_f = sum(pop_f) / len(pop_f)
-    low_f = min(pop_f)
-    print(max_f, avg_f, len(pop))
-
-    # Calculate and store the fitness values of the current population
-    fitness_values = evaluate(env, pop)
-    fitness_history.append(fitness_values)
-
-    # Calculate the standard deviation of fitness values
-    fitness_std = np.std(fitness_values)
-
-    # Print or log the fitness diversity metric for the current generation
-    print(f"Generation {Gen}: Fitness Diversity (Std Dev): {fitness_std}")
-
-# After the loop, you can visualize the fitness diversity over generations if needed
-plt.plot(range(maxGens), [np.std(fitness) for fitness in fitness_history])
-plt.title("Fitness Diversity Over Generations")
-plt.xlabel("Generation")
-plt.ylabel("Standard Deviation of Fitness")
-plt.show()
+    # After the loop, you can visualize the fitness diversity over generations if needed
+    plt.plot(range(maxGens), [np.std(fitness) for fitness in fitness_history])
+    plt.title("Fitness Diversity Over Generations")
+    plt.xlabel("Generation")
+    plt.ylabel("Standard Deviation of Fitness")
+    plt.show()
