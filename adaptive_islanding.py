@@ -69,7 +69,7 @@ n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5 +1
 
 # start writing your own code from here
 island_no = 2 # must be even
-migrating_indivs_no = 5 # how many inidivduals migrate
+migrating_indivs_no = 10 # how many inidivduals migrate
 migration_multiple = 3 # migration occurs every X gens
 pop_size = int(100 / island_no)
 max_f = -1
@@ -98,7 +98,7 @@ sigma_i_L = 0.01
 tao = 0.05
 step_size = math.e ** (tao * np.random.normal(0, 1))
 
-crossover_threshold = 5 
+crossover_threshold = 12 
 
 #Uniform recombination
 def uniform_recombination(i1, i2): #Takes as input two parents and returns 2 babies, in each position 50% chance to have parent1's gene
@@ -487,7 +487,7 @@ elif run_mode == 'train':
         max_f_isl2 = max(pop_f_isl2)
         avg_f_isl1 = sum(pop_f_isl1) / len(pop_f_isl1)
         avg_f_isl2 = sum(pop_f_isl2) / len(pop_f_isl2)
-        print(f'island 1: {max_f_isl1:.2f}, {avg_f_isl1:.2f}, island 2: {max_f_isl2:.2f}, {avg_f_isl2:.2f}\n')
+        print(f'island 1: {max_f_isl1:.2f}, {avg_f_isl1:.2f}, island 2: {max_f_isl2:.2f}, {avg_f_isl2:.2f}, {crossover_type}')
 
 
         if max_f_isl1 > overall_best:
