@@ -44,10 +44,14 @@ n_hidden_neurons = 10
 # initializes simulation in individual evolution mode, for single static enemy.
 env = Environment(experiment_name=experiment_name,
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                 enemies=[6],
 =======
                 enemies=[1, 4, 7],
                 multiplemode="yes",
+>>>>>>> Stashed changes
+=======
+                enemies=[5],
 >>>>>>> Stashed changes
                 playermode="ai",
                 player_controller=player_controller(n_hidden_neurons), # you  can insert your own controller here
@@ -66,6 +70,7 @@ pop_size = 100
 max_f =1
 avg_f =-1
 low_f = 999
+<<<<<<< Updated upstream
 maxGens=30
 Gen=0
 N_newGen=pop_size # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
@@ -76,6 +81,44 @@ gaussian_mutation_sd = 0.5
 pop = np.random.uniform(-1, 1, (pop_size, n_vars)) #initialize population
 pop_f = evaluate(env,pop) #evaluate population
 max_f=max(pop_f)
+=======
+maxGens = 20
+Gen = 0
+N_newGen = pop_size * 4  # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
+mutation_threshold = 0.1
+fitness_survivor_no = 20  # how many children in the new generation will be from "best". The rest are random.
+gaussian_mutation_sd = 0.5
+overall_best = -1
+e0 = 0.02               #Formulate the boundary condition for sigma'
+#COMPLETELY RANDOM NR NOW !!
+
+fitness_avg_history = []
+fitness_best_history = []
+fitness_history = []
+
+#Generate 266 genes, at loc 0 we find the sigma, the rest of the array is the weights
+pop = np.random.uniform(-1, 1, (pop_size, n_vars)) #Initialize population, with extra value for the weights
+
+#Define the bounds of your initial sigma values and tao for self-adaptive mutation
+sigma_i_U = 0.1
+sigma_i_L = 0.01
+
+#Generate the stepsize (mutation size) of your sigma value
+tao = 0.2
+step_size = math.e ** (tao * np.random.normal(0, 1))
+
+#Decide which baby to mutate
+
+
+#Generate the initial sigma values and place them at location 0 for each individual array
+sigma_vals_i = [random.uniform(sigma_i_U,sigma_i_L) for individual in range(pop_size)]
+pop[:, 0] = sigma_vals_i
+avg_sigma_start = sum(sigma_vals_i)/len(sigma_vals_i)
+
+#Evaluate population
+pop_f = evaluate(env,pop_weights_only(pop))
+max_f = max(pop_f)
+>>>>>>> Stashed changes
 avg_f = sum(pop_f)/len(pop_f)
 low_f = min(pop_f)
 print(max_f, avg_f)
@@ -127,13 +170,6 @@ def adaptive_tournament_selection(population, f_values, min_tournament_size=4, m
     num_parents = int(len(population)/2)
     selected_parents = []
 >>>>>>> Stashed changes
-
-    # Track the diversity of individuals using an array of zeros
-    diversity_scores = np.zeros(num_parents)
-
-    # Adaptive tournament size parameters
-    current_tournament_size = min_tournament_size  # Initialize the tournament size
-    tournament_size_increment = 1  # Increment to adjust tournament size (can be modified)
 
     # Loop over the number of parents to select
     for _ in range(num_parents):
@@ -195,9 +231,18 @@ def age_based_survivor_selection(population, fitness_values, pop_size, max_age=1
         # Increment the age of the selected individual
         selected_individual_age = best_individual_age + 1
 
+<<<<<<< Updated upstream
         # If the selected individual's age exceeds the maximum age, replace it
         if selected_individual_age <= max_age:
             selected_survivors.append(sorted_population[best_individual])
+=======
+elif run_mode == 'train':
+  for run_number in range(1): #define how many times to run the experiment
+    #Reinitialize parameters for each of the test runs
+    max_f = -1
+    avg_f = -1
+    low_f = 999
+>>>>>>> Stashed changes
 
     # Combine selected survivors to form the final population
     final_population = list(selected_survivors)
