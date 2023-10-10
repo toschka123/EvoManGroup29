@@ -18,7 +18,8 @@ if headless:
 experiment_name = 'optimization_test'
 
 env = Environment(experiment_name=experiment_name,
-                enemies=[6],
+                enemies=[1, 2, 3, 4, 5, 6, 7, 8],
+                multiplemode='yes',
                 playermode="ai",
                 player_controller=player_controller(n_hidden_neurons), # you  can insert your own controller here
                 enemymode="static",
@@ -30,14 +31,21 @@ def simulation(env,x):
     f,p,e,t = env.play(pcont=x)
     return f
 
+
+def individual_gain(env, individual):
+    f,p,e,t = env.play(pcont=individual)
+    indiv_gain = int(p)-int(e)
+    return indiv_gain
+
 # evaluation
 def evaluate(env, x):
     return np.array(list(map(lambda y: simulation(env,y), x)))
 
+
+def evaluate_indiv(bsol):
+    return(individual_gain(env, bsol))
+
 bsol = np.loadtxt(experiment_name + '/best.txt')
-print('\n RUNNING SAVED BEST SOLUTION \n')
-env.update_parameter('speed', 'normal')
-env.update_parameter('visuals', True)
-evaluate(env, [bsol])
+print(evaluate_indiv(bsol))
 
 sys.exit(0)
