@@ -309,129 +309,71 @@ def survivor_selector_mu_lambda(children, no_best_picks):
         survivors[i] = children[random.randint(0, pop_size-1)]
 
     return survivors
-
-def calculate_diversity_scores(population):
+def find_diverse_indexes(pop1, pop2, n):
     """
-    Calculate diversity scores for a population based on the Euclidean distance between individuals.
+    Find the most diverse individuals for migration through:
+    1. Calculating the average of the other population
+    2. Compare each individual of the other population (diversity score) to this average based on the Euclidean distance
+    3. Store the n largest differences for migration
 
     Args:
-    - population (list of arrays): A list containing arrays representing individuals in the population.
+    - pop1 (list of arrays): A list containing arrays representing individuals in the population.
+    - pop2 (list of arrays): A list containing arrays representing individuals in the population.
+    - n (even integer): Desired number of individuals with highest diversity score
 
     Returns:
-    - diversity_scores (list of floats): A list of diversity scores for each individual in the population.
+    Two lists of indexes for most diverse individuals for pop1 and pop2
     """
-    diversity_scores = []
-    for i in range(len(population)):
-        score = 0.0
-        for j in range(len(population)):
-            if i != j:
-                diff = population[i] - population[j]
-                score += np.linalg.norm(diff)
-        diversity_scores.append(score)
-    
-    # # Print the diversity scores
-    # for i, score in enumerate(diversity_scores):
-    #     print(f"Individual {i}: Diversity Score = {score:.2f}")
 
-    return diversity_scores
+    n_p = int(n / 2)
+    most_diverse_indices = []
 
-# def migrate_most_diverse(pop_island_1, pop_island_2, no_individuals):
-#     """
-#     Migrate the most diverse individuals between two islands' populations.
+    "1. Calculating the average of both populations"
+    avg_pop1 = np.mean(pop1, axis=0)
+    avg_pop2 = np.mean(pop2, axis=0)
 
-#     Args:
-#     - pop_island_1 (list of arrays): The population of the first island.
-#     - pop_island_2 (list of arrays): The population of the second island.
-#     - no_individuals (int): The number of individuals to migrate.
+    "2. Loop over the individuals to find the highest diversity"
 
-#     Returns:
-#     - pop_island_1 (list of arrays): Updated population of the first island after migration.
-#     - pop_island_2 (list of arrays): Updated population of the second island after migration.
-#     """
-#     # Calculate diversity scores for each island's population
-#     diversity_scores_island_1 = calculate_diversity_scores(pop_island_1)
-#     diversity_scores_island_2 = calculate_diversity_scores(pop_island_2)
+    # For population 1
+    euclidean_distances1 = np.linalg.norm(pop1 - avg_pop2, axis=1)
+    most_diverse_indices1 = np.argsort(euclidean_distances1)[-n_p:]
+    most_diverse_indices.append(most_diverse_indices1)
 
-#     # Sort individuals by their diversity scores in descending order
-#     sorted_indices_island_1 = np.argsort(diversity_scores_island_1)[::-1]
-#     sorted_indices_island_2 = np.argsort(diversity_scores_island_2)[::-1]
+    # For population 2
+    euclidean_distances2 = np.linalg.norm(pop2 - avg_pop1, axis=1)
+    most_diverse_indices2 = np.argsort(euclidean_distances2)[-n_p:]
+    most_diverse_indices.append(most_diverse_indices2)
 
-#     # Select the top 'no_individuals' diverse individuals from each island
-#     selected_indices_island_1 = sorted_indices_island_1[:no_individuals]
-#     selected_indices_island_2 = sorted_indices_island_2[:no_individuals]
+    return most_diverse_indices
 
-#     # Extract the migrating individuals from each island
-#     migrating_individuals_island_1 = pop_island_1[selected_indices_island_1]
-#     migrating_individuals_island_2 = pop_island_2[selected_indices_island_2]
 
-#     # Print the diversity scores of the migrating individuals
-#     print("Diversity Scores of Migrating Individuals from Island 1:")
-#     for i, index in enumerate(selected_indices_island_1):
-#         print(f"Individual {i + 1} (Island 1): {diversity_scores_island_1[index]:.2f}")
-
-#     print("\nDiversity Scores of Migrating Individuals from Island 2:")
-#     for i, index in enumerate(selected_indices_island_2):
-#         print(f"Individual {i + 1} (Island 2): {diversity_scores_island_2[index]:.2f}")
-
-#     # Exchange the selected individuals between the two islands
-#     pop_island_1[selected_indices_island_1] = migrating_individuals_island_2
-#     pop_island_2[selected_indices_island_2] = migrating_individuals_island_1
-
-#     # print(f'\nMigrated {no_individuals} individuals.')
-
-#     return pop_island_1, pop_island_2
-
-def calculate_inter_island_diversity_scores(pop_island_1, pop_island_2):
-    """
-    Calculate inter-island diversity scores for individuals between two islands' populations.
-
-    Args:
-    - pop_island_1 (list of arrays): The population of the first island.
-    - pop_island_2 (list of arrays): The population of the second island.
-
-    Returns:
-    - inter_island_diversity_scores (list of floats): A list of diversity scores for each individual between the two islands.
-    """
-    inter_island_diversity_scores = []
-
-    for ind_1 in pop_island_1:
-        for ind_2 in pop_island_2:
-            diff = ind_1 - ind_2
-            inter_island_diversity_scores.append(np.linalg.norm(diff))
-
-    return inter_island_diversity_scores
-
-def migrate_most_different_between_islands(pop_island_1, pop_island_2, no_individuals):
+def migration(pop1, pop2, indexes):
     """
     Migrate the most different individuals between two islands' populations.
 
     Args:
-    - pop_island_1 (list of arrays): The population of the first island.
-    - pop_island_2 (list of arrays): The population of the second island.
-    - no_individuals (int): The number of individuals to migrate.
+    - pop1 (array of lists): The population of the first island.
+    - pop1 (array of lists): The population of the second island.
+    - indexes (list of arrays): The indexes of the most diverse individuals in pop1 and pop2 respsectively
 
     Returns:
-    - pop_island_1 (list of arrays): Updated population of the first island after migration.
-    - pop_island_2 (list of arrays): Updated population of the second island after migration.
+    - pop1 (array of lists): Updated population of the first island after migration.
+    - pop2 (array of lists): Updated population of the second island after migration.
     """
-    # Calculate inter-island diversity scores for all pairs of individuals between the two islands
-    inter_island_diversity_scores = calculate_inter_island_diversity_scores(pop_island_1, pop_island_2)
-
-    # Select the top 'no_individuals' individuals with the highest inter-island diversity scores
-    selected_indices = np.argsort(inter_island_diversity_scores)[-no_individuals:]
-
-    # Extract the migrating individuals
-    migrating_individuals = [pop_island_1[i] for i in selected_indices]
 
     # Remove the selected individuals from their original islands
-    pop_island_1 = [ind for i, ind in enumerate(pop_island_1) if i not in selected_indices]
-    pop_island_2 = [ind for i, ind in enumerate(pop_island_2) if i not in selected_indices]
+    pop_island_1 = [ind for i, ind in enumerate(pop1) if i not in indexes[0]]
+    pop_island_2 = [ind for i, ind in enumerate(pop2) if i not in indexes[1]]
 
     # Append the migrating individuals to the destination island
-    pop_island_2.extend(migrating_individuals)
+    migrating_individuals1 = pop1[indexes[0]]
+    migrating_individuals2 = pop2[indexes[1]]
+
+    pop_island_1.extend(migrating_individuals1)
+    pop_island_2.extend(migrating_individuals2)
 
     return pop_island_1, pop_island_2
-    
+
 if run_mode =='test':
 
     bsol = np.loadtxt(experiment_name+'/best.txt')
@@ -471,7 +413,6 @@ elif run_mode == 'train':
     pop_f_isl2 = evaluate(env,pop_weights_only(pop_isl2))
     max_f_isl2 = max(pop_f_isl2)
     avg_f_isl2 = sum(pop_f_isl2) / len(pop_f_isl2)
-    
 
     step_size = math.e ** (tao * np.random.normal(0, 1))
     Gen = 0
@@ -525,12 +466,13 @@ elif run_mode == 'train':
 
         # Migration every X gens
         if (Gen % migration_multiple == 0) and (Gen != 0):
-            migrate_most_different_between_islands(pop_isl1, pop_isl2, migrating_indivs_no)
+            diverse_indexes = find_diverse_indexes(pop_isl1, pop_isl2, migrating_indivs_no)
+            pop_isl1n, pop_isl2n = migration(pop_isl1, pop_isl2, diverse_indexes)
+            pop_isl1, pop_isl2 = pop_isl1n, pop_isl2n
 
         Gen += 1
         pop_without_sigma_isl1 = pop_weights_only(pop_isl1)
         pop_without_sigma_isl2 = pop_weights_only(pop_isl2)
-
 
         pop_f_isl1 = evaluate(env,pop_without_sigma_isl1) #evaluate new population island 1
         pop_f_isl2 = evaluate(env,pop_without_sigma_isl2) #evaluate new population island 2
