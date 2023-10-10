@@ -310,30 +310,30 @@ def survivor_selector_mu_lambda(children, no_best_picks):
 
     return survivors
 
-def calculate_diversity_scores(population):
-    """
-    Calculate diversity scores for a population based on the Euclidean distance between individuals.
+# def calculate_diversity_scores(population):
+#     """
+#     Calculate diversity scores for a population based on the Euclidean distance between individuals.
 
-    Args:
-    - population (list of arrays): A list containing arrays representing individuals in the population.
+#     Args:
+#     - population (list of arrays): A list containing arrays representing individuals in the population.
 
-    Returns:
-    - diversity_scores (list of floats): A list of diversity scores for each individual in the population.
-    """
-    diversity_scores = []
-    for i in range(len(population)):
-        score = 0.0
-        for j in range(len(population)):
-            if i != j:
-                diff = population[i] - population[j]
-                score += np.linalg.norm(diff)
-        diversity_scores.append(score)
+#     Returns:
+#     - diversity_scores (list of floats): A list of diversity scores for each individual in the population.
+#     """
+#     diversity_scores = []
+#     for i in range(len(population)):
+#         score = 0.0
+#         for j in range(len(population)):
+#             if i != j:
+#                 diff = population[i] - population[j]
+#                 score += np.linalg.norm(diff)
+#         diversity_scores.append(score)
     
-    # # Print the diversity scores
-    # for i, score in enumerate(diversity_scores):
-    #     print(f"Individual {i}: Diversity Score = {score:.2f}")
+#     # # Print the diversity scores
+#     # for i, score in enumerate(diversity_scores):
+#     #     print(f"Individual {i}: Diversity Score = {score:.2f}")
 
-    return diversity_scores
+#     return diversity_scores
 
 # def migrate_most_diverse(pop_island_1, pop_island_2, no_individuals):
 #     """
@@ -420,18 +420,20 @@ def migrate_most_different_between_islands(pop_island_1, pop_island_2, no_indivi
     # Select the top 'no_individuals' individuals with the highest inter-island diversity scores
     selected_indices = np.argsort(inter_island_diversity_scores)[-no_individuals:]
 
-    # Extract the migrating individuals
-    migrating_individuals = [pop_island_1[i] for i in selected_indices]
+    # Extract the migrating individuals from both islands
+    migrating_individuals_1 = [pop_island_1[i] for i in selected_indices]
+    migrating_individuals_2 = [pop_island_2[i] for i in selected_indices]
 
     # Remove the selected individuals from their original islands
     pop_island_1 = [ind for i, ind in enumerate(pop_island_1) if i not in selected_indices]
     pop_island_2 = [ind for i, ind in enumerate(pop_island_2) if i not in selected_indices]
 
-    # Append the migrating individuals to the destination island
-    pop_island_2.extend(migrating_individuals)
+    # Append the migrating individuals to the destination islands
+    pop_island_2.extend(migrating_individuals_1)
+    pop_island_1.extend(migrating_individuals_2)
 
     return pop_island_1, pop_island_2
-    
+
 if run_mode =='test':
 
     bsol = np.loadtxt(experiment_name+'/best.txt')
