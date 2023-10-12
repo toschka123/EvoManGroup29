@@ -101,39 +101,49 @@ def main(
         return np.array(list(map(lambda y: simulation(env,y), x)))
 
     def evaluate_8(pop):
-        scores = []
-        beats = []
-        for individual in pop:
-            energy_gains = []
-            beat = 0
-            for i in range(8):
-                env = Environment(experiment_name=experiment_name,
-                                  enemies=[i+1],
-                                  multiplemode="no",
-                                  playermode="ai",
-                                  player_controller=player_controller(n_hidden_neurons),
-                                  # you  can insert your own controller here
-                                  enemymode="static",
-                                  level=2,
-                                  speed="fastest",
-                                  visuals=False)
-                f, p, e, t = env.play(pcont=individual)
-                energy_gain = int(p) - int(e)
-                if energy_gain > 0:
-                    beat += 1
-                energy_gains.append(energy_gain)
-            beats.append(beat)
-            score = 0
-            for gain in energy_gains:
-                score += gain
-            scores.append(score)
-        score1 = scores[:math.floor(len(scores)/2)]
-        score2 = scores[math.floor(len(scores)/2):]
-        print(f"scores: {score1}")
-        print(f"scores: {score2}")
-        print(f"beats: {beats}")
-        return scores
-
+            scores = []
+            beats = []
+            best_score = -1600
+            best_gains = [-800, -800, -800, -800, -800, -800, -800, -800]
+            best_beat = 0
+            for individual in pop:
+                energy_gains = []
+                beat = 0
+                for i in range(8):
+                    env = Environment(experiment_name=experiment_name,
+                                    enemies=[i+1],
+                                    multiplemode="no",
+                                    playermode="ai",
+                                    player_controller=player_controller(n_hidden_neurons),
+                                    # you  can insert your own controller here
+                                    enemymode="static",
+                                    level=2,
+                                    speed="fastest",
+                                    visuals=False)
+                    f, p, e, t = env.play(pcont=individual)
+                    energy_gain = int(p) - int(e)
+                    if energy_gain > 0:
+                        beat += 1
+                    energy_gains.append(energy_gain)
+                beats.append(beat)
+                score = 0
+                for gain in energy_gains:
+                    score += gain
+                if not energy_gains[5] > 0:  
+                    score = energy_gains[5] * 8
+                    score -= 800
+                if score > best_score:
+                    best_score = score
+                    best_gains = energy_gains
+                    best_beat = beat
+                scores.append(score)
+            score1 = scores[:math.floor(len(scores)/2)]
+            score2 = scores[math.floor(len(scores)/2):]
+            print(f"scores: {score1}")
+            print(f"scores: {score2}")
+            print(f"beats: {beats}")
+            print(f"best individual gains: {best_gains} enemies defeated: {best_beat}")
+            return scores
 
     def evaluate_gain(env, individual):
         return np.array((map(lambda y: individual_gain(env, y),individual)))
