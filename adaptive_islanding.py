@@ -372,7 +372,7 @@ def migration(pop1, pop2, indexes):
     pop_island_1.extend(migrating_individuals1)
     pop_island_2.extend(migrating_individuals2)
 
-    return pop_island_1, pop_island_2
+    return np.array(pop_island_1), np.array(pop_island_2)
 
 if run_mode =='test':
 
@@ -471,6 +471,8 @@ elif run_mode == 'train':
             pop_isl1, pop_isl2 = pop_isl1n, pop_isl2n
 
         Gen += 1
+        print(f"popisl1 = {pop_isl1}, with type {type(pop_isl1)}, and length {len(pop_isl1)}")
+
         pop_without_sigma_isl1 = pop_weights_only(pop_isl1)
         pop_without_sigma_isl2 = pop_weights_only(pop_isl2)
 
