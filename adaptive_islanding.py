@@ -309,6 +309,7 @@ def survivor_selector_mu_lambda(children, no_best_picks):
         survivors[i] = children[random.randint(0, pop_size-1)]
 
     return survivors
+
 def find_diverse_indexes(pop1, pop2, n):
     """
     Find the most diverse individuals for migration through:
@@ -483,7 +484,6 @@ elif run_mode == 'train':
         avg_f_isl1 = sum(pop_f_isl1) / len(pop_f_isl1)
         avg_f_isl2 = sum(pop_f_isl2) / len(pop_f_isl2)
         print(f'island 1: {max_f_isl1:.2f}, {avg_f_isl1:.2f}, island 2: {max_f_isl2:.2f}, {avg_f_isl2:.2f}, {crossover_type}')
-
 
         if max_f_isl1 > overall_best:
             overall_best = max_f_isl1
