@@ -89,12 +89,13 @@ fitness_history = []
 pop = np.random.uniform(-1, 1, (pop_size, n_vars)) #Initialize population, with extra value for the weights
 
 #Define the bounds of your initial sigma values and tao for self-adaptive mutation
-sigma_i_U = 0.1
-sigma_i_L = 0.01
+sigma_i_U = 0.5  # when starting at 1.0 scores dont really improve until it reaches around 0.5
+sigma_i_L = 0.5  # 0.1 could be good too, but maybe converges too quick? 0.01 definitely too refined to start with
 
 #Generate the stepsize (mutation size) of your sigma value
 tao = 0.05
-step_size = math.e ** (tao * np.random.normal(0, 1))
+step_size = 0.95  # mutation slowly becomes smaller
+#step_size = math.e ** (tao * np.random.normal(0, 1))
 
 #Decide which baby to mutate
 
@@ -213,6 +214,7 @@ def adaptive_tournament_selection(population, f_values, min_tournament_size=2, m
 # The rest are picked randomly.
 def survivor_selector_mu_lambda(children, no_best_picks):
     survivors = np.random.uniform(-1, 1, (pop_size, n_vars)) #preallocate a random array for survivors
+    survivors_f = [0] * pop_size  # preallocate an array for survivors fitness
 
     children_without_sigma = pop_weights_only(children)
 
@@ -220,13 +222,19 @@ def survivor_selector_mu_lambda(children, no_best_picks):
 
     indices_best_children = np.argpartition(children_fitness, -no_best_picks)[-no_best_picks:]
 
+    randints = list(range(0, len(children)))  # Create list of integers(unique)
+    random.shuffle(randints)                  # Shuffle the list
     for i in range(no_best_picks): #add some number of best children to the new population
         survivors[i] = children[indices_best_children[i]]
-    
-    for i in range(no_best_picks, pop_size): #fill the rest of the population with random children
-        survivors[i] = children[random.randint(0, pop_size-1)]
+        survivors_f[i] = children_fitness[indices_best_children[i]]  # Save the fitness of the selected child
 
-    return survivors
+    for i in range(no_best_picks, pop_size): #fill the rest of the population with random children
+        survivors[i] = children[randints[i]]
+        survivors_f[i] = children_fitness[randints[i]]
+    return survivors, survivors_f
+
+
+
 
 if run_mode =='test':
 
@@ -253,14 +261,7 @@ elif run_mode == 'train':
     #Generate 266 genes, at loc 0 we find the sigma, the rest of the array is the weights
     pop = np.random.uniform(-1, 1, (pop_size, n_vars)) #Initialize population, with extra value for the weights
 
-    #Define the bounds of your initial sigma values and tao for self-adaptive mutation
-    sigma_i_U = 0.1
-    sigma_i_L = 0.01
-
-    #Generate the stepsize (mutation size) of your sigma value
-    tao = 0.05
-    step_size = math.e ** (tao * np.random.normal(0, 1))
-    Gen = 0
+    Gen = 1
     
     while Gen < maxGens:
         # parents = []
@@ -286,7 +287,7 @@ elif run_mode == 'train':
         #print(f"new_kids: {new_kids}")
         #print(f"shape: {len(new_kids), len(new_kids[0])}")
         #print(f"fitness_survivor_no: {fitness_survivor_no}")
-        survivors = survivor_selector_mu_lambda(new_kids, fitness_survivor_no)
+        survivors, survivors_f = survivor_selector_mu_lambda(new_kids, fitness_survivor_no)
         for i in range(pop_size):
             pop[i] = survivors[i]
 
@@ -294,7 +295,7 @@ elif run_mode == 'train':
 
         pop_without_sigma = pop_weights_only(pop)
 
-        pop_f = evaluate(env,pop_without_sigma) #evaluate new population
+        pop_f = survivors_f #evaluate new population
         max_f = max(pop_f)
         avg_f = sum(pop_f) / len(pop_f)
         low_f = min(pop_f)
