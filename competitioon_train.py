@@ -47,7 +47,7 @@ def main(
     fitness_survivor_no = int(40 /island_no)  # how many children in the new generation will be from "best". The rest are random.
     gaussian_mutation_sd = 0.5
     overall_best = -1
-    e0 = 0.000001               #Formulate the boundary condition for sigma'
+    e0 = 0.02               #Formulate the boundary condition for sigma'
     #COMPLETELY RANDOM NR NOW !!
     run_mode = "train"
 
@@ -182,12 +182,17 @@ def main(
         sigma2 = baby2[0]
 
         for i in range(1,len(i1)):
-            baby1.append(i1[i])
-            baby2.append(i2[i])
-            if random.random() > mutation_threshold:
-                baby1[i] = mutate_gene_sa(baby1[i], sigma1)
-            if random.random() > mutation_threshold:
-                baby2[i] = mutate_gene_sa(baby1[i], sigma2)
+                if randint(0,1) == 1:
+                    baby1.append(i1[i])
+                    baby2.append(i2[i])
+                else:
+                    baby1.append(i2[i])
+                    baby2.append(i1[i]) 
+
+                if random.random() > mutation_threshold:
+                    baby1[i] = mutate_gene_sa(baby1[i], sigma1)
+                if random.random() > mutation_threshold:
+                    baby2[i] = mutate_gene_sa(baby1[i], sigma2)
         return baby1, baby2
 
 
@@ -276,14 +281,7 @@ def main(
     def adaptive_tournament_selection(population, f_values, min_tournament_size=2, max_tournament_size=5):
         num_parents = int(len(population)/2)
         selected_parents = []  # List to store the selected parents
-
-        # Track the diversity of individuals using an array of zeros
-        diversity_scores = np.zeros(num_parents)
-
-        # Adaptive tournament size parameters
-        current_tournament_size = min_tournament_size  # Initialize the tournament size
-        tournament_size_increment = 1  # Increment to adjust tournament size (can be modified)
-
+        
         # Loop over the number of parents to select
         for _ in range(int(N_newGen)):
             # Randomly select individuals for the tournament (without replacement)
@@ -349,7 +347,7 @@ def main(
         # Perform mutation on sigma values of baby1
         if random.random() > mutation_threshold:
             # Generate a random step size for mutation
-            step_size = math.e ** (tau * random.normalvariate(0, 1))
+            step_size = 0.95
             
             # Calculate the mutated sigma value
             sigma_prime1 = baby1[0] * step_size
@@ -364,7 +362,7 @@ def main(
         # Perform mutation on sigma values of baby2
         if random.random() > mutation_threshold:
             # Generate a random step size for mutation
-            step_size = math.e ** (tau * random.normalvariate(0, 1))
+            step_size = 0.95
             
             # Calculate the mutated sigma value
             sigma_prime2 = baby2[0] * step_size
