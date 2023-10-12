@@ -54,7 +54,7 @@ n_hidden_neurons = 10
 
 # initializes simulation in individual evolution mode, for single static enemy.
 env = Environment(experiment_name=experiment_name,
-                enemies=[1, 3, 7],
+                enemies=[1, 2, 3, 6, 7],
                 multiplemode="yes",
                 playermode="ai",
                 player_controller=player_controller(n_hidden_neurons), # you  can insert your own controller here
@@ -69,7 +69,7 @@ n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5 +1
 
 # start writing your own code from here
 island_no = 2 # must be even
-migrating_indivs_no = 5 # how many inidivduals migrate
+migrating_indivs_no = 10 # how many inidivduals migrate
 migration_multiple = 3 # migration occurs every X gens
 pop_size = int(100 / island_no)
 max_f = -1
@@ -78,7 +78,7 @@ low_f = 999
 maxGens = 20
 Gen = 0
 N_newGen = pop_size * 4  # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
-mutation_threshold = 0.04
+mutation_threshold = 0.1
 fitness_survivor_no = int(40 /island_no)  # how many children in the new generation will be from "best". The rest are random.
 gaussian_mutation_sd = 0.5
 overall_best = -1
@@ -98,8 +98,24 @@ sigma_i_L = 0.01
 tao = 0.05
 step_size = math.e ** (tao * np.random.normal(0, 1))
 
+crossover_threshold = 12 
+
 #Uniform recombination
 def uniform_recombination(i1, i2): #Takes as input two parents and returns 2 babies, in each position 50% chance to have parent1's gene
+    """
+    Perform uniform recombination between two parents.
+
+    Args:
+    - i1 (list): The genetic representation of the first parent.
+    - i2 (list): The genetic representation of the second parent.
+    - mutation_threshold (float): Probability threshold for performing mutation.
+    - step_size (float): Mutation step size for sigma adjustment.
+    - e0 (float): Minimum value for the mutated sigma.
+
+    Returns:
+    - baby1 (list): The genetic representation of the first offspring.
+    - baby2 (list): The genetic representation of the second offspring.
+    """
     baby1=[]
     baby2=[]
 
@@ -161,16 +177,96 @@ def mutate_gene_gaussian(gene):
     gene += mutation
     return gene
 
+def multipoint_crossover(parent1, parent2, mutation_threshold, tao, e0):
+    """
+    Perform multipoint crossover between two parents.
+
+    Args:
+    - parent1 (list): The first parent's genetic representation.
+    - parent2 (list): The second parent's genetic representation.
+    - mutation_threshold (float): Probability threshold for performing mutation.
+    - tao (float): Mutation parameter for step size adjustment.
+    - e0 (float): Minimum value for the mutated sigma.
+
+    Returns:
+    - baby1 (list): The genetic representation of the first offspring.
+    - baby2 (list): The genetic representation of the second offspring.
+    """
+    # Check if parents have the same length
+    assert len(parent1) == len(parent2), "Parents must have the same length."
+
+    # Determine the number of crossover points randomly
+    num_points = random.randint(1, len(parent1) - 1)
+    
+    # Generate sorted random crossover points
+    crossover_points = sorted(random.sample(range(1, len(parent1)), num_points))
+
+    # Initialize offspring containers
+    baby1 = []
+    baby2 = []
+
+    # Iterate over crossover points to perform gene exchange
+    for i in range(len(crossover_points) + 1):
+        # Determine the start and end indices for gene exchange
+        start = 0 if i == 0 else crossover_points[i - 1]
+        end = len(parent1) if i == len(crossover_points) else crossover_points[i]
+
+        # Alternate between parents to create offspring
+        if i % 2 == 0:
+            baby1.extend(parent1[start:end])
+            baby2.extend(parent2[start:end])
+        else:
+            baby1.extend(parent2[start:end])
+            baby2.extend(parent1[start:end])
+
+    # Perform mutation on sigma values of baby1
+    if random.random() > mutation_threshold:
+        # Generate a random step size for mutation
+        step_size = math.e ** (tao * random.normalvariate(0, 1))
+        
+        # Calculate the mutated sigma value
+        sigma_prime1 = baby1[0] * step_size
+        
+        # Ensure the mutated sigma value does not go below e0
+        if sigma_prime1 < e0:
+            sigma_prime1 = e0
+        
+        # Update baby1's sigma value
+        baby1[0] = sigma_prime1
+
+    # Perform mutation on sigma values of baby2
+    if random.random() > mutation_threshold:
+        # Generate a random step size for mutation
+        step_size = math.e ** (tao * random.normalvariate(0, 1))
+        
+        # Calculate the mutated sigma value
+        sigma_prime2 = baby2[0] * step_size
+        
+        # Ensure the mutated sigma value does not go below e0
+        if sigma_prime2 < e0:
+            sigma_prime2 = e0
+        
+        # Update baby2's sigma value
+        baby2[0] = sigma_prime2
+
+    # Return the resulting offspring, baby1 and baby2
+    return baby1, baby2
+
 def adaptive_tournament_selection(population, f_values, min_tournament_size=2, max_tournament_size=5):
+    """
+    Perform adaptive tournament selection to choose parents from a population.
+
+    Args:
+    - population (list): List of individuals in the population.
+    - f_values (list): List of fitness values corresponding to the individuals in the population.
+    - min_tournament_size (int): Minimum number of individuals in each tournament.
+    - max_tournament_size (int): Maximum number of individuals in each tournament.
+
+    Returns:
+    - selected_parents (list): List of selected parents from the population.
+    """
     num_parents = int(len(population)/2)
     selected_parents = []  # List to store the selected parents
-
-    # Track the diversity of individuals using an array of zeros
-    diversity_scores = np.zeros(num_parents)
-
-    # Adaptive tournament size parameters
-    current_tournament_size = min_tournament_size  # Initialize the tournament size
-    tournament_size_increment = 1  # Increment to adjust tournament size (can be modified)
 
     # Loop over the number of parents to select
     for _ in range(int(N_newGen)):
@@ -213,21 +309,70 @@ def survivor_selector_mu_lambda(children, no_best_picks):
         survivors[i] = children[random.randint(0, pop_size-1)]
 
     return survivors
+def find_diverse_indexes(pop1, pop2, n):
+    """
+    Find the most diverse individuals for migration through:
+    1. Calculating the average of the other population
+    2. Compare each individual of the other population (diversity score) to this average based on the Euclidean distance
+    3. Store the n largest differences for migration
+
+    Args:
+    - pop1 (list of arrays): A list containing arrays representing individuals in the population.
+    - pop2 (list of arrays): A list containing arrays representing individuals in the population.
+    - n (even integer): Desired number of individuals with highest diversity score
+
+    Returns:
+    Two lists of indexes for most diverse individuals for pop1 and pop2
+    """
+
+    n_p = int(n / 2)
+    most_diverse_indices = []
+
+    "1. Calculating the average of both populations"
+    avg_pop1 = np.mean(pop1, axis=0)
+    avg_pop2 = np.mean(pop2, axis=0)
+
+    "2. Loop over the individuals to find the highest diversity"
+
+    # For population 1
+    euclidean_distances1 = np.linalg.norm(pop1 - avg_pop2, axis=1)
+    most_diverse_indices1 = np.argsort(euclidean_distances1)[-n_p:]
+    most_diverse_indices.append(most_diverse_indices1)
+
+    # For population 2
+    euclidean_distances2 = np.linalg.norm(pop2 - avg_pop1, axis=1)
+    most_diverse_indices2 = np.argsort(euclidean_distances2)[-n_p:]
+    most_diverse_indices.append(most_diverse_indices2)
+
+    return most_diverse_indices
 
 
-# Exchanges some number of individuals between two islands
-def migrate(pop_island_1, pop_island_2, no_individuals):
-    indiv_indices = random.sample(range(1, pop_size), no_individuals) #exchange randomly. TODO: exchange most different indivs
-    leaving_isl_1 = pop_island_1[indiv_indices]
-    leaving_ils_2 = pop_island_2[indiv_indices]
+def migration(pop1, pop2, indexes):
+    """
+    Migrate the most different individuals between two islands' populations.
 
-    pop_island_1[indiv_indices] = leaving_ils_2
-    pop_island_2[indiv_indices] = leaving_isl_1
+    Args:
+    - pop1 (array of lists): The population of the first island.
+    - pop1 (array of lists): The population of the second island.
+    - indexes (list of arrays): The indexes of the most diverse individuals in pop1 and pop2 respsectively
 
-    print('migrated')
+    Returns:
+    - pop1 (array of lists): Updated population of the first island after migration.
+    - pop2 (array of lists): Updated population of the second island after migration.
+    """
 
-    return pop_island_1, pop_island_2
+    # Remove the selected individuals from their original islands
+    pop_island_1 = [ind for i, ind in enumerate(pop1) if i not in indexes[0]]
+    pop_island_2 = [ind for i, ind in enumerate(pop2) if i not in indexes[1]]
 
+    # Append the migrating individuals to the destination island
+    migrating_individuals1 = pop1[indexes[0]]
+    migrating_individuals2 = pop2[indexes[1]]
+
+    pop_island_1.extend(migrating_individuals1)
+    pop_island_2.extend(migrating_individuals2)
+
+    return np.array(pop_island_1), np.array(pop_island_2)
 
 if run_mode =='test':
 
@@ -268,55 +413,68 @@ elif run_mode == 'train':
     pop_f_isl2 = evaluate(env,pop_weights_only(pop_isl2))
     max_f_isl2 = max(pop_f_isl2)
     avg_f_isl2 = sum(pop_f_isl2) / len(pop_f_isl2)
-    print(f'INIT: island 1: {max_f_isl1:.2f}, {avg_f_isl1:.2f}, island 2: {max_f_isl2:.2f}, {avg_f_isl2:.2f}\n')
-    
 
     step_size = math.e ** (tao * np.random.normal(0, 1))
     Gen = 0
     
     while Gen < maxGens:
         print(f'Generation: {Gen}')
-        #Parent selection island 1
-        parents_isl1=[]
-        parents_isl1 = adaptive_tournament_selection(pop_isl1, pop_f_isl1, 4) #generates 100 parents - parent selection seems to make the convergion faster
-        new_kids_isl1 = np.random.uniform(-1, 1, (N_newGen, n_vars)) #preallocate 600 kids
+        
+        # Determine the crossover type based on the generation threshold
+        if Gen < crossover_threshold:
+            crossover_type = 'uniform'
+        else:
+            crossover_type = 'multipoint'
+        
+        # Parent selection island 1
+        parents_isl1 = []
+        parents_isl1 = adaptive_tournament_selection(pop_isl1, pop_f_isl1, 4)  # generates 100 parents - parent selection seems to make the convergence faster
+        new_kids_isl1 = np.random.uniform(-1, 1, (N_newGen, n_vars))  # preallocate 600 kids
 
-        #Recombination island 1
-        for i in range(0,N_newGen,2):
-            baby1, baby2 = uniform_recombination(parents_isl1[i], parents_isl1[i+1])
+        # Recombination island 1
+        for i in range(0, N_newGen, 2):
+            if crossover_type == 'multipoint':
+                baby1, baby2 = multipoint_crossover(parents_isl1[i], parents_isl1[i + 1], mutation_threshold, tao, e0)
+            else:
+                baby1, baby2 = uniform_recombination(parents_isl1[i], parents_isl1[i + 1])
             new_kids_isl1[i] = baby1
             new_kids_isl1[i + 1] = baby2
 
-         #Parent selection island 2
-        parents_isl2=[]
-        parents_isl2 = adaptive_tournament_selection(pop_isl2, pop_f_isl2, 4) #generates 100 parents - parent selection seems to make the convergion faster
-        new_kids_isl2 = np.random.uniform(-1, 1, (N_newGen, n_vars)) #preallocate 600 kids
+        # Parent selection island 2
+        parents_isl2 = []
+        parents_isl2 = adaptive_tournament_selection(pop_isl2, pop_f_isl2, 4)  # generates 100 parents - parent selection seems to make the convergence faster
+        new_kids_isl2 = np.random.uniform(-1, 1, (N_newGen, n_vars))  # preallocate 600 kids
 
-        #Recombination island 2
-        for i in range(0,N_newGen,2):
-            baby1, baby2 = uniform_recombination(parents_isl2[i], parents_isl2[i+1])
+        # Recombination island 2
+        for i in range(0, N_newGen, 2):
+            if crossover_type == 'multipoint':
+                baby1, baby2 = multipoint_crossover(parents_isl2[i], parents_isl2[i + 1], mutation_threshold, tao, e0)
+            else:
+                baby1, baby2 = uniform_recombination(parents_isl2[i], parents_isl2[i + 1])
             new_kids_isl2[i] = baby1
             new_kids_isl2[i + 1] = baby2
 
-        #Survivor selection island 1
+        # Survivor selection island 1
         survivors_isl1 = survivor_selector_mu_lambda(new_kids_isl1, fitness_survivor_no)
         for i in range(pop_size):
             pop_isl1[i] = survivors_isl1[i]
 
-        #Survivor selection island 2
+        # Survivor selection island 2
         survivors_isl2 = survivor_selector_mu_lambda(new_kids_isl2, fitness_survivor_no)
         for i in range(pop_size):
             pop_isl2[i] = survivors_isl2[i]
 
-        #Migration every X gens
+        # Migration every X gens
         if (Gen % migration_multiple == 0) and (Gen != 0):
-            migrate(pop_isl1, pop_isl2, migrating_indivs_no)
+            diverse_indexes = find_diverse_indexes(pop_isl1, pop_isl2, migrating_indivs_no)
+            pop_isl1n, pop_isl2n = migration(pop_isl1, pop_isl2, diverse_indexes)
+            pop_isl1, pop_isl2 = pop_isl1n, pop_isl2n
 
-        Gen+=1
+        Gen += 1
+        print(f"popisl1 = {pop_isl1}, with type {type(pop_isl1)}, and length {len(pop_isl1)}")
 
         pop_without_sigma_isl1 = pop_weights_only(pop_isl1)
         pop_without_sigma_isl2 = pop_weights_only(pop_isl2)
-
 
         pop_f_isl1 = evaluate(env,pop_without_sigma_isl1) #evaluate new population island 1
         pop_f_isl2 = evaluate(env,pop_without_sigma_isl2) #evaluate new population island 2
@@ -324,7 +482,7 @@ elif run_mode == 'train':
         max_f_isl2 = max(pop_f_isl2)
         avg_f_isl1 = sum(pop_f_isl1) / len(pop_f_isl1)
         avg_f_isl2 = sum(pop_f_isl2) / len(pop_f_isl2)
-        print(f'island 1: {max_f_isl1:.2f}, {avg_f_isl1:.2f}, island 2: {max_f_isl2:.2f}, {avg_f_isl2:.2f}\n')
+        print(f'island 1: {max_f_isl1:.2f}, {avg_f_isl1:.2f}, island 2: {max_f_isl2:.2f}, {avg_f_isl2:.2f}, {crossover_type}')
 
 
         if max_f_isl1 > overall_best:
@@ -356,11 +514,11 @@ elif run_mode == 'train':
 
     #avg_sigma_end = sum(pop[:,1])/len(pop[:,1])
 
-
     energyGain=individual_gain  (env, best_individual)
     
     #print(energyGain)
-    save_run(fitness_avg_history, fitness_best_history, avg_sigma_start, 0,energyGain, "heatmen", run_number)
+    # save_run(fitness_avg_history, fitness_best_history, energyGain, 'heatman', run_number)
+
     #save_run(fitness_avg_history, fitness_best_history, avg_sigma_start, avg_sigma_end)
     # After the loop, you can visualize the fitness diversity over generations if needed
     """plt.plot(range(maxGens), [np.std(fitness) for fitness in fitness_history])
@@ -368,5 +526,3 @@ elif run_mode == 'train':
     plt.xlabel("Generation")
     plt.ylabel("Standard Deviation of Fitness")
     plt.show()"""
-
-
