@@ -63,6 +63,15 @@ env = Environment(experiment_name=experiment_name,
                 speed="fastest",
                 visuals=False)
 
+test_env = Environment(experiment_name=experiment_name,
+                enemies=[1, 2, 3,4,5, 6, 7,8],
+                multiplemode="yes",
+                playermode="ai",
+                player_controller=player_controller(n_hidden_neurons), # you  can insert your own controller here
+                enemymode="static",
+                level=2,
+                speed="fastest",
+                visuals=False)
 
 # number of variables for multilayer with 10 hidden neurons (265) plus one sigma value
 n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5 +1
@@ -478,7 +487,7 @@ elif run_mode == 'train':
             pop_isl1, pop_isl2 = pop_isl1n, pop_isl2n
 
         Gen += 1
-        print(f"popisl1 = {pop_isl1}, with type {type(pop_isl1)}, and length {len(pop_isl1)}")
+        #print(f"popisl1 = {pop_isl1}, with type {type(pop_isl1)}, and length {len(pop_isl1)}")
 
         pop_without_sigma_isl1 = pop_weights_only(pop_isl1)
         pop_without_sigma_isl2 = pop_weights_only(pop_isl2)
@@ -504,7 +513,6 @@ elif run_mode == 'train':
             best = np.argmax(pop_f_isl2)
             best_individual = pop_without_sigma_isl2[best]
             overall_best = max_f
-
             np.savetxt(experiment_name + '/best.txt', pop_without_sigma_isl2[best])
         # Store fitness history for each generation
         fitness_avg_history.append((avg_f_isl1+avg_f_isl2)/2)
@@ -521,10 +529,10 @@ elif run_mode == 'train':
 
     #avg_sigma_end = sum(pop[:,1])/len(pop[:,1])
 
-    energyGain=individual_gain  (env, best_individual)
+    energyGain=individual_gain(test_env, best_individual)
     
     #print(energyGain)
-    # save_run(fitness_avg_history, fitness_best_history, energyGain, 'heatman', run_number)
+    save_run(fitness_avg_history, fitness_best_history, energyGain, 'Experiment1-', run_number)
 
     #save_run(fitness_avg_history, fitness_best_history, avg_sigma_start, avg_sigma_end)
     # After the loop, you can visualize the fitness diversity over generations if needed
