@@ -41,7 +41,7 @@ def main(
     max_f = -1
     avg_f = -1
     low_f = 999
-    maxGens = 1000
+    maxGens = 300
     Gen = 0
     N_newGen = pop_size * 4  # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
     fitness_survivor_no = int(40 /island_no)  # how many children in the new generation will be from "best". The rest are random.
@@ -62,7 +62,7 @@ def main(
     #Generate the stepsize (mutation size) of your sigma value
     step_size = 0.95
     # </editor-fold>
-    crossover_threshold = 10
+    crossover_threshold = 100
     # <editor-fold desc="Simulation settings">
     # runs simulation
     def simulation(env,x):
