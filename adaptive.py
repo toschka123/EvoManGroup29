@@ -81,9 +81,7 @@ overall_best = -1
 e0 = 0.02               #Formulate the boundary condition for sigma'
 
 # Define crossover probabilities
-multipoint_crossover_prob = 0.8 # Probability of using multipoint crossover
-uniform_crossover_prob = 0.3   # Probability of using uniform crossover
-
+crossover_threshold = 12
 
 #COMPLETELY RANDOM NR NOW !!
 
@@ -315,19 +313,21 @@ elif run_mode == 'train':
             parents = adaptive_tournament_selection(pop, pop_f, 4)  # Generates parents using adaptive tournament selection
             new_kids = np.random.uniform(-1, 1, (N_newGen, n_vars))  # Preallocate offspring
 
-            for i in range(0, N_newGen, 2):
-                # Generate a random number between 0 and 1
-                random_number = random.random()
+            # Determine the crossover type based on the generation threshold
+            if Gen < crossover_threshold:
+                crossover_type = 'uniform'
+            else:
+                crossover_type = 'multipoint'
 
-                if random_number <= multipoint_crossover_prob:
-                    # Use multipoint crossover for this pair of parents
-                    baby1, baby2 = multipoint_crossover(parents[i], parents[i + 1], mutation_threshold, tao, e0)
-                    crossover_used = 'Multipoint Crossover'
+            for generation in range(N_newGen):
+                
+                # Determine which crossover method to use based on the current generation
+                if generation < crossover_threshold:
+                    if crossover_type == 'multipoint':
+                        baby1, baby2 = multipoint_crossover(parents[i], parents[i + 1], mutation_threshold, tao, e0)
                 else:
-                    # Use uniform crossover for this pair of parents
                     baby1, baby2 = uniform_recombination(parents[i], parents[i + 1])
-                    crossover_used = 'Uniform Crossover'
-            
+
                 new_kids[i] = baby1
                 new_kids[i + 1] = baby2
 
@@ -365,7 +365,7 @@ elif run_mode == 'train':
             fitness_std = np.std(fitness_values)
 
             # Print or log the fitness diversity metric for the current generation
-            print(f"Generation {Gen}: Fitness Diversity (Std Dev): {fitness_std}, {crossover_used}")
+            print(f"Generation {Gen}: Fitness Diversity (Std Dev): {fitness_std}, {crossover_type}")
 
         avg_sigma_end = sum(pop[:,1])/len(pop[:,1])
         energyGain=individual_gain  (env, pop_without_sigma[best])
