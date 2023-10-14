@@ -327,7 +327,7 @@ elif run_mode == 'train':
     avg_sigma_end = sum(pop[:,1])/len(pop[:,1])
     energyGain=individual_gain  (env, pop_without_sigma[best])
     #print(energyGain)
-    save_run(fitness_avg_history, fitness_best_history, avg_sigma_start, avg_sigma_end,energyGain, "heatmen", run_number)
+    save_run(fitness_avg_history, fitness_best_history ,energyGain, "heatmen", run_number)
     #save_run(fitness_avg_history, fitness_best_history, avg_sigma_start, avg_sigma_end)
     # After the loop, you can visualize the fitness diversity over generations if needed
     """plt.plot(range(maxGens), [np.std(fitness) for fitness in fitness_history])
