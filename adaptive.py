@@ -45,7 +45,7 @@ headless = True
 if headless:
     os.environ["SDL_VIDEODRIVER"] = "dummy"
 
-experiment_name = 'optimization_test'
+experiment_name = 'no_islanding_1235'
 if not os.path.exists(experiment_name):
     os.makedirs(experiment_name)
 
@@ -53,7 +53,7 @@ n_hidden_neurons = 10
 
 # initializes simulation in individual evolution mode, for single static enemy.
 env = Environment(experiment_name=experiment_name,
-                enemies=[6, 8],
+                enemies=[1, 2, 3, 5],
                 multiplemode="yes",
                 playermode="ai",
                 player_controller=player_controller(n_hidden_neurons), # you  can insert your own controller here
@@ -76,14 +76,11 @@ Gen = 0
 N_newGen = pop_size * 4  # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
 mutation_threshold = 0.3
 fitness_survivor_no = 20  # how many children in the new generation will be from "best". The rest are random.
-gaussian_mutation_sd = 0.5
 overall_best = -1
 e0 = 0.02               #Formulate the boundary condition for sigma'
 
 # Define crossover probabilities
 crossover_threshold = 12
-
-#COMPLETELY RANDOM NR NOW !!
 
 fitness_avg_history = []
 fitness_best_history = []
@@ -286,7 +283,8 @@ if run_mode =='test':
     sys.exit(0)
 
 elif run_mode == 'train':
-    for run_number in range(1): #define how many times to run the experiment
+    for run_number in range(10): #define how many times to run the experiment
+        print(f"\nExperiment number: {run_number + 1}")
         #Reinitialize parameters for each of the test runs
         max_f = -1
         avg_f = -1
@@ -310,6 +308,7 @@ elif run_mode == 'train':
         Gen = 0
     
         while Gen < maxGens:
+            print(f'generation: {Gen}')
             parents = adaptive_tournament_selection(pop, pop_f, 4)  # Generates parents using adaptive tournament selection
             new_kids = np.random.uniform(-1, 1, (N_newGen, n_vars))  # Preallocate offspring
 
@@ -354,7 +353,8 @@ elif run_mode == 'train':
                 best_individual = pop_without_sigma[best]
                 overall_best = max_f
 
-                np.savetxt(experiment_name + '/best.txt', pop_without_sigma[best])
+                best_file_name = f'/best_{run_number}.txt'
+                np.savetxt(experiment_name + best_file_name, pop_without_sigma[best])
 
             # Store fitness history for each generation
             fitness_values = evaluate(env, pop_without_sigma)
@@ -363,16 +363,6 @@ elif run_mode == 'train':
             # Calculate the standard deviation of fitness values
             fitness_std = np.std(fitness_values)
 
-            # Print or log the fitness diversity metric for the current generation
-            print(f"Generation {Gen}: Fitness Diversity (Std Dev): {fitness_std}, {crossover_type}")
-
         avg_sigma_end = sum(pop[:,1])/len(pop[:,1])
         energyGain=individual_gain  (env, pop_without_sigma[best])
         save_run(fitness_avg_history, fitness_best_history, energyGain, 'Exp_1', run_number)
-        #save_run(fitness_avg_history, fitness_best_history, avg_sigma_start, avg_sigma_end)
-        # After the loop, you can visualize the fitness diversity over generations if needed
-        plt.plot(range(maxGens), [np.std(fitness) for fitness in fitness_history])
-        plt.title("Fitness Diversity Over Generations")
-        plt.xlabel("Generation")
-        plt.ylabel("Standard Deviation of Fitness")
-        plt.show()

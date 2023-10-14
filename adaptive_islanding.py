@@ -46,7 +46,7 @@ headless = True
 if headless:
     os.environ["SDL_VIDEODRIVER"] = "dummy"
 
-experiment_name = 'optimization_test'
+experiment_name = 'islanding_1235'
 if not os.path.exists(experiment_name):
     os.makedirs(experiment_name)
 
@@ -54,7 +54,7 @@ n_hidden_neurons = 10
 
 # initializes simulation in individual evolution mode, for single static enemy.
 env = Environment(experiment_name=experiment_name,
-                enemies=[1, 2, 3, 6, 7],
+                enemies=[1, 2, 3, 5],
                 multiplemode="yes",
                 playermode="ai",
                 player_controller=player_controller(n_hidden_neurons), # you  can insert your own controller here
@@ -64,7 +64,7 @@ env = Environment(experiment_name=experiment_name,
                 visuals=False)
 
 test_env = Environment(experiment_name=experiment_name,
-                enemies=[1, 2, 3,4,5, 6, 7,8],
+                enemies=[1, 2, 3, 4, 5, 6, 7, 8],
                 multiplemode="yes",
                 playermode="ai",
                 player_controller=player_controller(n_hidden_neurons), # you  can insert your own controller here
@@ -79,7 +79,7 @@ n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5 +1
 # start writing your own code from here
 island_no = 2 # must be even
 migrating_indivs_no = 10 # how many inidivduals migrate
-migration_multiple = 3 # migration occurs every X gens
+migration_multiple = 5 # migration occurs every X gens
 pop_size = int(100 / island_no)
 max_f = -1
 avg_f = -1
@@ -92,7 +92,6 @@ fitness_survivor_no = int(40 /island_no)  # how many children in the new generat
 gaussian_mutation_sd = 0.5
 overall_best = -1
 e0 = 0.02               #Formulate the boundary condition for sigma'
-#COMPLETELY RANDOM NR NOW !!
 run_mode = "train"
 
 fitness_avg_history = []
@@ -105,9 +104,6 @@ sigma_i_L = 0.5  # 0.1 could be good too, but maybe converges too quick? 0.01 de
 
 #Generate the stepsize (mutation size) of your sigma value
 tao = 0.05
-step_size = 0.95  # mutation slowly becomes smaller
-#step_size = math.e ** (tao * np.random.normal(0, 1))
-
 crossover_threshold = 12 
 
 #Uniform recombination
@@ -177,15 +173,6 @@ def mutate_gene_sa(gene, s):
     gene += mutation
     return gene
 
-
-def mutate_gene_gaussian(gene):
-    mutation = np.random.normal(0, gaussian_mutation_sd)
-
-    while (mutation + gene > 1) or (mutation + gene < -1):
-        mutation = np.random.normal(0, gaussian_mutation_sd)
-
-    gene += mutation
-    return gene
 
 def multipoint_crossover(parent1, parent2, mutation_threshold, tao, e0):
     """
@@ -401,141 +388,125 @@ if run_mode =='test':
     sys.exit(0)
 
 elif run_mode == 'train':
-  for run_number in range(1): #define how many times to run the experiment
-    #Reinitialize parameters for each of the test runs
-    max_f = -1
-    avg_f = -1
-    low_f = 999
+    for run_number in range(10): #define how many times to run the experiment
+        print(f"\nExperiment number: {run_number + 1}")
 
-    overall_best = -1
-    fitness_avg_history = []
-    fitness_best_history = []
-    fitness_history = []
+        #Reinitialize parameters for each of the test runs
+        max_f = -1
+        avg_f = -1
+        low_f = 999
 
-    #Generate 266 genes, at loc 0 we find the sigma, the rest of the array is the weights
-    pop_isl1 = np.random.uniform(-1, 1, (pop_size, n_vars)) #Initialize population, with extra value for the weights
-    pop_isl2 = np.random.uniform(-1, 1, (pop_size, n_vars)) #Initialize population, with extra value for the weights
+        overall_best = -1
+        fitness_avg_history = []
+        fitness_best_history = []
+        fitness_history = []
 
-    #Generate the initial sigma values and place them at location 0 for each individual array
-    sigma_vals_i = [random.uniform(sigma_i_U,sigma_i_L) for individual in range(pop_size)]
-    pop_isl1[:, 0] = sigma_vals_i
-    pop_isl2[:, 0] = sigma_vals_i
+        #Generate 266 genes, at loc 0 we find the sigma, the rest of the array is the weights
+        pop_isl1 = np.random.uniform(-1, 1, (pop_size, n_vars)) #Initialize population, with extra value for the weights
+        pop_isl2 = np.random.uniform(-1, 1, (pop_size, n_vars)) #Initialize population, with extra value for the weights
 
-    #Evaluate populations : initialization
-    pop_f_isl1 = evaluate(env,pop_weights_only(pop_isl1))
-    max_f_isl1 = max(pop_f_isl1)
-    avg_f_isl1 = sum(pop_f_isl1) / len(pop_f_isl1)
+        #Generate the initial sigma values and place them at location 0 for each individual array
+        sigma_vals_i = [random.uniform(sigma_i_U,sigma_i_L) for individual in range(pop_size)]
+        pop_isl1[:, 0] = sigma_vals_i
+        pop_isl2[:, 0] = sigma_vals_i
 
-    pop_f_isl2 = evaluate(env,pop_weights_only(pop_isl2))
-    max_f_isl2 = max(pop_f_isl2)
-    avg_f_isl2 = sum(pop_f_isl2) / len(pop_f_isl2)
-
-    step_size = math.e ** (tao * np.random.normal(0, 1))
-    Gen = 0
-    
-    while Gen < maxGens:
-        print(f'Generation: {Gen}')
-        
-        # Determine the crossover type based on the generation threshold
-        if Gen < crossover_threshold:
-            crossover_type = 'uniform'
-        else:
-            crossover_type = 'multipoint'
-        
-        # Parent selection island 1
-        parents_isl1 = []
-        parents_isl1 = adaptive_tournament_selection(pop_isl1, pop_f_isl1, 4)  # generates 100 parents - parent selection seems to make the convergence faster
-        new_kids_isl1 = np.random.uniform(-1, 1, (N_newGen, n_vars))  # preallocate 600 kids
-
-        # Recombination island 1
-        for i in range(0, N_newGen, 2):
-            if crossover_type == 'multipoint':
-                baby1, baby2 = multipoint_crossover(parents_isl1[i], parents_isl1[i + 1], mutation_threshold, tao, e0)
-            else:
-                baby1, baby2 = uniform_recombination(parents_isl1[i], parents_isl1[i + 1])
-            new_kids_isl1[i] = baby1
-            new_kids_isl1[i + 1] = baby2
-
-        # Parent selection island 2
-        parents_isl2 = []
-        parents_isl2 = adaptive_tournament_selection(pop_isl2, pop_f_isl2, 4)  # generates 100 parents - parent selection seems to make the convergence faster
-        new_kids_isl2 = np.random.uniform(-1, 1, (N_newGen, n_vars))  # preallocate 600 kids
-
-        # Recombination island 2
-        for i in range(0, N_newGen, 2):
-            if crossover_type == 'multipoint':
-                baby1, baby2 = multipoint_crossover(parents_isl2[i], parents_isl2[i + 1], mutation_threshold, tao, e0)
-            else:
-                baby1, baby2 = uniform_recombination(parents_isl2[i], parents_isl2[i + 1])
-            new_kids_isl2[i] = baby1
-            new_kids_isl2[i + 1] = baby2
-
-        # Survivor selection island 1
-        survivors_isl1, survivors_isl1_f = survivor_selector_mu_lambda(new_kids_isl1, fitness_survivor_no)
-        for i in range(pop_size):
-            pop_isl1[i] = survivors_isl1[i]
-
-        # Survivor selection island 2
-        survivors_isl2, survivors_isl2_f = survivor_selector_mu_lambda(new_kids_isl2, fitness_survivor_no)
-        for i in range(pop_size):
-            pop_isl2[i] = survivors_isl2[i]
-
-        # Migration every X gens
-        if (Gen % migration_multiple == 0) and (Gen != 0):
-            diverse_indexes = find_diverse_indexes(pop_isl1, pop_isl2, migrating_indivs_no)
-            pop_isl1n, pop_isl2n = migration(pop_isl1, pop_isl2, diverse_indexes)
-            pop_isl1, pop_isl2 = pop_isl1n, pop_isl2n
-
-        Gen += 1
-        #print(f"popisl1 = {pop_isl1}, with type {type(pop_isl1)}, and length {len(pop_isl1)}")
-
-        pop_without_sigma_isl1 = pop_weights_only(pop_isl1)
-        pop_without_sigma_isl2 = pop_weights_only(pop_isl2)
-
-        pop_f_isl1 = survivors_isl1_f
-        pop_f_isl2 = survivors_isl2_f
+        #Evaluate populations : initialization
+        pop_f_isl1 = evaluate(env,pop_weights_only(pop_isl1))
         max_f_isl1 = max(pop_f_isl1)
-        max_f_isl2 = max(pop_f_isl2)
         avg_f_isl1 = sum(pop_f_isl1) / len(pop_f_isl1)
+
+        pop_f_isl2 = evaluate(env,pop_weights_only(pop_isl2))
+        max_f_isl2 = max(pop_f_isl2)
         avg_f_isl2 = sum(pop_f_isl2) / len(pop_f_isl2)
-        print(f'island 1: {max_f_isl1:.2f}, {avg_f_isl1:.2f}, island 2: {max_f_isl2:.2f}, {avg_f_isl2:.2f}, {crossover_type}')
 
-
-        if max_f_isl1 > overall_best:
-            overall_best = max_f_isl1
-            best = np.argmax(pop_f_isl1)
-            best_individual = pop_without_sigma_isl1[best]
-            np.savetxt(experiment_name + '/best.txt', pop_without_sigma_isl1[best])
+        step_size = math.e ** (tao * np.random.normal(0, 1))
+        Gen = 0
         
-        if max_f_isl2 > overall_best:
-            overall_best = max_f_isl2
-            best = np.argmax(pop_f_isl2)
-            best_individual = pop_without_sigma_isl2[best]
-            np.savetxt(experiment_name + '/best.txt', pop_without_sigma_isl2[best])
-        # Store fitness history for each generation
-        fitness_avg_history.append((avg_f_isl1+avg_f_isl2)/2)
-        fitness_best_history.append(overall_best)
-        # Calculate and store the fitness values of the current population
-        #fitness_values = evaluate(env, pop_without_sigma)
-        #fitness_history.append(fitness_values)
+        while Gen < maxGens:
+            print(f'Generation: {Gen}')
+            
+            # Determine the crossover type based on the generation threshold
+            if Gen < crossover_threshold:
+                crossover_type = 'uniform'
+            else:
+                crossover_type = 'multipoint'
+            
+            # Parent selection island 1
+            parents_isl1 = []
+            parents_isl1 = adaptive_tournament_selection(pop_isl1, pop_f_isl1, 4)  # generates 100 parents - parent selection seems to make the convergence faster
+            new_kids_isl1 = np.random.uniform(-1, 1, (N_newGen, n_vars))  # preallocate 600 kids
 
-        # Calculate the standard deviation of fitness values
-        #fitness_std = np.std(fitness_values)
+            # Recombination island 1
+            for i in range(0, N_newGen, 2):
+                if crossover_type == 'multipoint':
+                    baby1, baby2 = multipoint_crossover(parents_isl1[i], parents_isl1[i + 1], mutation_threshold, tao, e0)
+                else:
+                    baby1, baby2 = uniform_recombination(parents_isl1[i], parents_isl1[i + 1])
+                new_kids_isl1[i] = baby1
+                new_kids_isl1[i + 1] = baby2
 
-        # Print or log the fitness diversity metric for the current generation
-        #print(f"Generation {Gen}: Fitness Diversity (Std Dev): {fitness_std}")
+            # Parent selection island 2
+            parents_isl2 = []
+            parents_isl2 = adaptive_tournament_selection(pop_isl2, pop_f_isl2, 4)  # generates 100 parents - parent selection seems to make the convergence faster
+            new_kids_isl2 = np.random.uniform(-1, 1, (N_newGen, n_vars))  # preallocate 600 kids
 
-    #avg_sigma_end = sum(pop[:,1])/len(pop[:,1])
+            # Recombination island 2
+            for i in range(0, N_newGen, 2):
+                if crossover_type == 'multipoint':
+                    baby1, baby2 = multipoint_crossover(parents_isl2[i], parents_isl2[i + 1], mutation_threshold, tao, e0)
+                else:
+                    baby1, baby2 = uniform_recombination(parents_isl2[i], parents_isl2[i + 1])
+                new_kids_isl2[i] = baby1
+                new_kids_isl2[i + 1] = baby2
 
-    energyGain=individual_gain(test_env, best_individual)
-    
-    #print(energyGain)
-    save_run(fitness_avg_history, fitness_best_history, energyGain, 'Experiment1-', run_number)
+            # Survivor selection island 1
+            survivors_isl1, survivors_isl1_f = survivor_selector_mu_lambda(new_kids_isl1, fitness_survivor_no)
+            for i in range(pop_size):
+                pop_isl1[i] = survivors_isl1[i]
 
-    #save_run(fitness_avg_history, fitness_best_history, avg_sigma_start, avg_sigma_end)
-    # After the loop, you can visualize the fitness diversity over generations if needed
-    """plt.plot(range(maxGens), [np.std(fitness) for fitness in fitness_history])
-    plt.title("Fitness Diversity Over Generations")
-    plt.xlabel("Generation")
-    plt.ylabel("Standard Deviation of Fitness")
-    plt.show()"""
+            # Survivor selection island 2
+            survivors_isl2, survivors_isl2_f = survivor_selector_mu_lambda(new_kids_isl2, fitness_survivor_no)
+            for i in range(pop_size):
+                pop_isl2[i] = survivors_isl2[i]
+
+            # Migration every X gens
+            if (Gen % migration_multiple == 0) and (Gen != 0):
+                diverse_indexes = find_diverse_indexes(pop_isl1, pop_isl2, migrating_indivs_no)
+                pop_isl1n, pop_isl2n = migration(pop_isl1, pop_isl2, diverse_indexes)
+                pop_isl1, pop_isl2 = pop_isl1n, pop_isl2n
+
+            Gen += 1
+            #print(f"popisl1 = {pop_isl1}, with type {type(pop_isl1)}, and length {len(pop_isl1)}")
+
+            pop_without_sigma_isl1 = pop_weights_only(pop_isl1)
+            pop_without_sigma_isl2 = pop_weights_only(pop_isl2)
+
+            pop_f_isl1 = survivors_isl1_f
+            pop_f_isl2 = survivors_isl2_f
+            max_f_isl1 = max(pop_f_isl1)
+            max_f_isl2 = max(pop_f_isl2)
+            avg_f_isl1 = sum(pop_f_isl1) / len(pop_f_isl1)
+            avg_f_isl2 = sum(pop_f_isl2) / len(pop_f_isl2)
+            print(f'island 1: {max_f_isl1:.2f}, {avg_f_isl1:.2f}, island 2: {max_f_isl2:.2f}, {avg_f_isl2:.2f}, {crossover_type}')
+
+
+            if max_f_isl1 > overall_best:
+                overall_best = max_f_isl1
+                best = np.argmax(pop_f_isl1)
+                best_individual = pop_without_sigma_isl1[best]
+                best_file_name = f'/best_{run_number}.txt'
+                np.savetxt(experiment_name + best_file_name, pop_without_sigma_isl1[best])
+            
+            if max_f_isl2 > overall_best:
+                overall_best = max_f_isl2
+                best = np.argmax(pop_f_isl2)
+                best_individual = pop_without_sigma_isl2[best]
+                best_file_name = f'/best_{run_number}.txt'
+                np.savetxt(experiment_name + best_file_name, pop_without_sigma_isl2[best])
+            # Store fitness history for each generation
+            fitness_avg_history.append((avg_f_isl1+avg_f_isl2)/2)
+            fitness_best_history.append(overall_best)
+
+        energyGain=individual_gain(test_env, best_individual)
+        
+        save_run(fitness_avg_history, fitness_best_history, energyGain, 'Experiment1-', run_number)
