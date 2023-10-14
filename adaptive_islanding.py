@@ -505,14 +505,12 @@ elif run_mode == 'train':
             overall_best = max_f_isl1
             best = np.argmax(pop_f_isl1)
             best_individual = pop_without_sigma_isl1[best]
-            overall_best = max_f_isl1
             np.savetxt(experiment_name + '/best.txt', pop_without_sigma_isl1[best])
         
         if max_f_isl2 > overall_best:
             overall_best = max_f_isl2
             best = np.argmax(pop_f_isl2)
             best_individual = pop_without_sigma_isl2[best]
-            overall_best = max_f
             np.savetxt(experiment_name + '/best.txt', pop_without_sigma_isl2[best])
         # Store fitness history for each generation
         fitness_avg_history.append((avg_f_isl1+avg_f_isl2)/2)
