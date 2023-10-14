@@ -53,7 +53,7 @@ n_hidden_neurons = 10
 
 # initializes simulation in individual evolution mode, for single static enemy.
 env = Environment(experiment_name=experiment_name,
-                enemies=[6, 7, 8],
+                enemies=[6, 8],
                 multiplemode="yes",
                 playermode="ai",
                 player_controller=player_controller(n_hidden_neurons), # you  can insert your own controller here
@@ -71,7 +71,7 @@ pop_size = 100
 max_f = -1
 avg_f = -1
 low_f = 999
-maxGens = 10
+maxGens = 20
 Gen = 0
 N_newGen = pop_size * 4  # define how many offsprings we want to produce and how many old individuals we want to kill NOTE This has to be even!!
 mutation_threshold = 0.3
@@ -368,7 +368,7 @@ elif run_mode == 'train':
 
         avg_sigma_end = sum(pop[:,1])/len(pop[:,1])
         energyGain=individual_gain  (env, pop_without_sigma[best])
-        save_run(fitness_avg_history, fitness_best_history, avg_sigma_start, avg_sigma_end,energyGain, 'waterman', run_number)
+        save_run(fitness_avg_history, fitness_best_history, energyGain, 'Exp_1', run_number)
         #save_run(fitness_avg_history, fitness_best_history, avg_sigma_start, avg_sigma_end)
         # After the loop, you can visualize the fitness diversity over generations if needed
         plt.plot(range(maxGens), [np.std(fitness) for fitness in fitness_history])
