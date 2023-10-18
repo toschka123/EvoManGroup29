@@ -45,7 +45,7 @@ def evaluate(env, x):
 def evaluate_indiv(bsol):
     return(individual_gain(env, bsol))
 
-bsol = np.loadtxt(experiment_name + '/best_0.txt')
+bsol = np.loadtxt(experiment_name + '/best_2.txt')
 print(evaluate_indiv(bsol))
 
 sys.exit(0)

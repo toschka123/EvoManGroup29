@@ -55,12 +55,11 @@ energyGain=[]
 playerHealth=[]
 enemyHealth = []
 
-
+bsol = np.loadtxt(experiment_name + '/best_2.txt')
+print('\n RUNNING SAVED BEST SOLUTION \n')
 
 for i in range(1,9):
     env.update_parameter('enemies', [i])
-    bsol = np.loadtxt(experiment_name + '/best_2.txt')
-    print('\n RUNNING SAVED BEST SOLUTION \n')
     # env.update_parameter('speed', 'normal')
     #env.update_parameter('visuals', True)
     gain, p, e = individual_gain(env, bsol)
@@ -68,7 +67,7 @@ for i in range(1,9):
     enemyHealth.append(e)
     energyGain.append(gain)
 
-# print(f'player health: {playerHealth}, enemy health: {enemyHealth}')
+print(sum(energyGain)/len(energyGain))
 
 table = [range(1,9), 
          playerHealth,
