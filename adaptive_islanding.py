@@ -46,7 +46,7 @@ headless = True
 if headless:
     os.environ["SDL_VIDEODRIVER"] = "dummy"
 
-experiment_name = 'islanding_1235'
+experiment_name = 'solutions_islanding_678'
 if not os.path.exists(experiment_name):
     os.makedirs(experiment_name)
 
@@ -54,7 +54,7 @@ n_hidden_neurons = 10
 
 # initializes simulation in individual evolution mode, for single static enemy.
 env = Environment(experiment_name=experiment_name,
-                enemies=[1, 2, 3, 5],
+                enemies=[6, 7, 8],
                 multiplemode="yes",
                 playermode="ai",
                 player_controller=player_controller(n_hidden_neurons), # you  can insert your own controller here
@@ -509,4 +509,4 @@ elif run_mode == 'train':
 
         energyGain=individual_gain(test_env, best_individual)
         
-        save_run(fitness_avg_history, fitness_best_history, energyGain, 'Experiment1-', run_number)
+        save_run(fitness_avg_history, fitness_best_history, energyGain, 'best', run_number)

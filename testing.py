@@ -15,7 +15,7 @@ n_hidden_neurons = 10
 if headless:
     os.environ["SDL_VIDEODRIVER"] = "dummy"
 
-experiment_name = 'optimization_test'
+experiment_name = 'solutions_islanding_678'
 
 env = Environment(experiment_name=experiment_name,
                 enemies=[1, 2, 3, 4, 5, 6, 7, 8],
@@ -45,7 +45,7 @@ def evaluate(env, x):
 def evaluate_indiv(bsol):
     return(individual_gain(env, bsol))
 
-bsol = np.loadtxt(experiment_name + '/best.txt')
+bsol = np.loadtxt(experiment_name + '/best_0.txt')
 print(evaluate_indiv(bsol))
 
 sys.exit(0)

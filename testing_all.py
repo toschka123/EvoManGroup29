@@ -16,7 +16,7 @@ n_hidden_neurons = 10
 if headless:
     os.environ["SDL_VIDEODRIVER"] = "dummy"
 
-experiment_name = 'solutions_islanding_1235'
+experiment_name = 'islanding_678'
 
 # env = Environment(experiment_name=experiment_name,
 #                 enemies = [1],#enemies=[1, 2, 3, 4, 5, 6, 7, 8],
@@ -56,7 +56,7 @@ def evaluate(env, x):
 # enemyHealth = []
 # for i in range(1,9):
 # env.update_parameter('enemies', [i])
-bsol = np.loadtxt(experiment_name + '/best_3.txt')
+bsol = np.loadtxt(experiment_name + '/best_0.txt')
 print('\n RUNNING SAVED BEST SOLUTION \n')
 # env.update_parameter('speed', 'normal')
 #env.update_parameter('visuals', True)
