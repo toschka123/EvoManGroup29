@@ -44,7 +44,7 @@ def simulation(env,x):
 
 def individual_gain(env, individual):
     f,p,e,t = env.play(pcont=individual)
-    indiv_gain = int(p)-int(e)
+    indiv_gain = float(p)-float(e)
     return indiv_gain, p, e
 
 # evaluation
@@ -60,14 +60,16 @@ print('\n RUNNING SAVED BEST SOLUTION \n')
 
 for i in range(1,9):
     env.update_parameter('enemies', [i])
-    # env.update_parameter('speed', 'normal')
-    #env.update_parameter('visuals', True)
     gain, p, e = individual_gain(env, bsol)
     playerHealth.append(p)
     enemyHealth.append(e)
     energyGain.append(gain)
 
 print(sum(energyGain)/len(energyGain))
+print(energyGain)
+print(playerHealth)
+print(enemyHealth)
+
 
 table = [range(1,9), 
          playerHealth,
